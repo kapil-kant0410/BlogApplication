@@ -1,8 +1,5 @@
 package com.ql.BlogApplication.controller;
-import com.ql.BlogApplication.dto.ApiResponse;
-import com.ql.BlogApplication.dto.RoleRequestDto;
-import com.ql.BlogApplication.dto.UserRegisterRequestDto;
-import com.ql.BlogApplication.dto.UserResponseDto;
+import com.ql.BlogApplication.dto.*;
 import com.ql.BlogApplication.entity.User;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
@@ -44,9 +41,9 @@ public class UserController {
     }
 
      @PutMapping("/{id}")
-     public ResponseEntity<ApiResponse<String>> updateUserByID(@PathVariable Long id,@Valid @RequestBody UserRegisterRequestDto userRequestDto){
-         logger.info("Updating user with ID: {} | Email: {} | Name: {}", id, userRequestDto.getEmail(), userRequestDto.getName());
-         return userService.updateUserByID(id,userRequestDto);
+     public ResponseEntity<ApiResponse<String>> updateUserByID(@PathVariable Long id,@Valid @RequestBody UserUpdateRequestDto userUpdateRequestDto){
+         logger.info("Updating user with ID: {} | Email: {} | Name: {}", id, userUpdateRequestDto.getEmail(), userUpdateRequestDto.getName());
+         return userService.updateUserByID(id,userUpdateRequestDto);
      }
 
      @PostMapping("/addRole/{id}")

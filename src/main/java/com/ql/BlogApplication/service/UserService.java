@@ -1,8 +1,5 @@
 package com.ql.BlogApplication.service;
-import com.ql.BlogApplication.dto.ApiResponse;
-import com.ql.BlogApplication.dto.RoleRequestDto;
-import com.ql.BlogApplication.dto.UserRegisterRequestDto;
-import com.ql.BlogApplication.dto.UserResponseDto;
+import com.ql.BlogApplication.dto.*;
 import com.ql.BlogApplication.entity.Role;
 import com.ql.BlogApplication.entity.User;
 import com.ql.BlogApplication.entity.UserRole;
@@ -13,6 +10,7 @@ import com.ql.BlogApplication.repository.UserRoleRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import java.util.*;
 
@@ -22,12 +20,14 @@ public class UserService {
       private final UserRepository userRepository;
       private final RoleRepository roleRepository;
       private final UserRoleRepository userRoleRepository;
+      private final BCryptPasswordEncoder passwordEncoder;
 
       //Working properly
-      public UserService(UserRepository userRepository,RoleRepository roleRepository,UserRoleRepository userRoleRepository){
-         this.userRepository=userRepository;
-         this.roleRepository=roleRepository;
-         this.userRoleRepository=userRoleRepository;
+      public UserService(UserRepository userRepository, RoleRepository roleRepository, UserRoleRepository userRoleRepository, BCryptPasswordEncoder passwordEncoder){
+          this.userRepository=userRepository;
+          this.roleRepository=roleRepository;
+          this.userRoleRepository=userRoleRepository;
+          this.passwordEncoder = passwordEncoder;
       }
 
       //Working properly
@@ -69,7 +69,7 @@ public class UserService {
 
       //Not working properly
       @Transactional
-      public ResponseEntity<ApiResponse<String>> updateUserByID(Long id, UserRegisterRequestDto userRegisterRequestDto ){
+      public ResponseEntity<ApiResponse<String>> updateUserByID(Long id, UserUpdateRequestDto userUpdateRequestDto ){
 
             Optional<User> user=userRepository.findById(id);
 
@@ -79,26 +79,11 @@ public class UserService {
             }
 
             User userToUpdate=user.get();
-            userToUpdate.setName(userRegisterRequestDto.getName());
-            userToUpdate.setEmail(userRegisterRequestDto.getEmail());
-            userToUpdate.setPassword(userRegisterRequestDto.getPassword());
+            userToUpdate.setName(userUpdateRequestDto.getName());
+            userToUpdate.setEmail(userUpdateRequestDto.getEmail());
+            userToUpdate.setPassword(passwordEncoder.encode(userUpdateRequestDto.getPassword()));
 
-            userRoleRepository.deleteAll(userToUpdate.getUserRoles());
-
-            Optional<Role> role=roleRepository.findByName(userRegisterRequestDto.getRole());
-
-            if(role.isEmpty()){
-                ApiResponse<String> apiResponse= ApiResponse.error(HttpStatus.NOT_FOUND.value(),"No role found","No role found");
-                return new ResponseEntity<>(apiResponse,HttpStatus.NOT_FOUND);
-            }
-
-            UserRole userRole=new UserRole();
-            userRole.setUser(userToUpdate);
-            userRole.setRole(role.get());
-
-            userRoleRepository.save(userRole);
             userRepository.save(userToUpdate);
-
 
             ApiResponse<String> apiResponse= ApiResponse.<String>success(HttpStatus.OK.value(), "User updated successfully","User updated successfully");
             return new ResponseEntity<>(apiResponse,HttpStatus.OK);

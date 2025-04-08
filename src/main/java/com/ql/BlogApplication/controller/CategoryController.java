@@ -30,4 +30,9 @@ public class CategoryController {
         return categoryService.createCategory(categoryRequestDto);
     }
 
+    @DeleteMapping("/delete/{id}")
+    ResponseEntity<ApiResponse<String>> deleteCategory(@Valid @PathVariable Long id){
+        return categoryService.deleteCategory(id);
+    }
+
 }

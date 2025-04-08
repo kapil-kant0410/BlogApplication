@@ -29,6 +29,13 @@ public class Post {
     @Column(nullable = false)
     private String content;
 
+    @Column(nullable = false)
+    private Boolean isPublished=false;
+
+    @Column(nullable = false)
+    private  String imageURL;
+
+
     @ManyToOne
     @JsonBackReference
     @JoinColumn(name = "author_id",nullable = false)

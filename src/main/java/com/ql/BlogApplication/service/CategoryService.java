@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import java.util.List;
+import java.util.Optional;
 
 
 @Service
@@ -37,6 +38,18 @@ public class CategoryService {
            categoryRepository.save(category);
            ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(),"Category created successfully","Category created successfully");
            return new ResponseEntity<>(apiResponse,HttpStatus.OK);
+    }
+
+    public ResponseEntity<ApiResponse<String>> deleteCategory(Long id){
+        Optional<Category> optionalCategory=categoryRepository.findById(id);
+        if(optionalCategory.isEmpty()){
+            ApiResponse<String> apiResponse= ApiResponse.error(HttpStatus.NOT_FOUND.value(),"Category not found","Category not found");
+            return new ResponseEntity<>(apiResponse,HttpStatus.NOT_FOUND);
+        }
+
+        categoryRepository.deleteById(id);
+        ApiResponse<String> apiResponse= ApiResponse.success(HttpStatus.OK.value(),"Category deleted successfully","Category deleted successfully");
+        return new ResponseEntity<>(apiResponse,HttpStatus.OK);
     }
 
 }
