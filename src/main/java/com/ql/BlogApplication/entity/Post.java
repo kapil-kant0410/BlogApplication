@@ -35,7 +35,6 @@ public class Post {
     @Column(nullable = false)
     private  String imageURL;
 
-
     @ManyToOne
     @JsonBackReference
     @JoinColumn(name = "author_id",nullable = false)

@@ -3,14 +3,18 @@ import com.ql.BlogApplication.dto.*;
 import com.ql.BlogApplication.entity.Role;
 import com.ql.BlogApplication.entity.User;
 import com.ql.BlogApplication.entity.UserRole;
+import com.ql.BlogApplication.exception.RoleNotFoundException;
+import com.ql.BlogApplication.exception.UserNotFoundException;
+import com.ql.BlogApplication.interceptor.AuthorInterceptor;
 import com.ql.BlogApplication.mapper.UserMapper;
 import com.ql.BlogApplication.repository.RoleRepository;
 import com.ql.BlogApplication.repository.UserRepository;
 import com.ql.BlogApplication.repository.UserRoleRepository;
+import com.ql.BlogApplication.util.JwtUtil;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import java.util.*;
 
@@ -20,48 +24,46 @@ public class UserService {
       private final UserRepository userRepository;
       private final RoleRepository roleRepository;
       private final UserRoleRepository userRoleRepository;
-      private final BCryptPasswordEncoder passwordEncoder;
+      private final JwtUtil jwtUtil;
+      private final AuthorInterceptor authorInterceptor;
+      private final HttpServletRequest httpServletRequest;
 
       //Working properly
-      public UserService(UserRepository userRepository, RoleRepository roleRepository, UserRoleRepository userRoleRepository, BCryptPasswordEncoder passwordEncoder){
+      public UserService(UserRepository userRepository, RoleRepository roleRepository, UserRoleRepository userRoleRepository,JwtUtil jwtUtil,AuthorInterceptor authorInterceptor,HttpServletRequest httpServletRequest){
           this.userRepository=userRepository;
           this.roleRepository=roleRepository;
           this.userRoleRepository=userRoleRepository;
-          this.passwordEncoder = passwordEncoder;
+          this.jwtUtil=jwtUtil;
+          this.authorInterceptor=authorInterceptor;
+          this.httpServletRequest=httpServletRequest;
       }
 
       //Working properly
       public ResponseEntity<ApiResponse<List<UserResponseDto>>> getAllUsers(){
         List<User> allUsers= userRepository.findAll();
-
         List<UserResponseDto> userResponseDtoList= UserMapper.toDtoList(allUsers);
-
         ApiResponse<List<UserResponseDto>> apiResponse= ApiResponse.<List<UserResponseDto>>success(HttpStatus.OK.value(), userResponseDtoList,"All users fetched successfully");
         return new ResponseEntity<>(apiResponse,HttpStatus.OK);
     }
 
       //Working properly
       public ResponseEntity<ApiResponse<UserResponseDto>> getUserById(Long id){
-
-           Optional<User> user=userRepository.findById(id);
-
-           if(user.isPresent()){
-               UserResponseDto userResponseDto=UserMapper.toDto(user.get());
-               ApiResponse<UserResponseDto> apiResponse= ApiResponse.<UserResponseDto>success(HttpStatus.OK.value(), userResponseDto,"Successfully find user with this id");
-               return new ResponseEntity<>(apiResponse,HttpStatus.OK);
-           }
-
-           ApiResponse<UserResponseDto> apiResponse= ApiResponse.error(HttpStatus.NOT_FOUND.value(),null, "No user found");
-           return new ResponseEntity<>(apiResponse,HttpStatus.NOT_FOUND);
+          User user=userRepository.findById(id).orElseThrow(()-> new UserNotFoundException("User not found"));
+          UserResponseDto userResponseDto=UserMapper.toDto(user);
+          ApiResponse<UserResponseDto> apiResponse= ApiResponse.<UserResponseDto>success(HttpStatus.OK.value(), userResponseDto,"Successfully find user with this id");
+          return new ResponseEntity<>(apiResponse,HttpStatus.OK);
       }
 
       //Working properly
-      public ResponseEntity<ApiResponse<String>> deleteUserById(Long id){
+      public ResponseEntity<ApiResponse<String>> deleteUserById(){
 
-             if(!userRepository.existsById(id)){
-                 ApiResponse<String> apiResponse=ApiResponse.error(HttpStatus.NOT_FOUND.value(),"User not found","User not found");
-                 return new ResponseEntity<>(apiResponse,HttpStatus.NOT_FOUND);
-             }
+            String token= authorInterceptor.getToken(httpServletRequest);
+            Long id= Long.parseLong(jwtUtil.extractId(token));
+
+            boolean isUserExists=userRepository.existsById(id);
+            if(!isUserExists){
+              throw new UserNotFoundException("User not found");
+            }
              userRepository.deleteById(id);
              ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(),"User deleted successfully","User deleted successfully");
              return new ResponseEntity<>(apiResponse,HttpStatus.OK);
@@ -69,53 +71,57 @@ public class UserService {
 
       //Not working properly
       @Transactional
-      public ResponseEntity<ApiResponse<String>> updateUserByID(Long id, UserUpdateRequestDto userUpdateRequestDto ){
+      public ResponseEntity<ApiResponse<String>> updateUserByID( UserUpdateRequestDto userUpdateRequestDto ){
 
-            Optional<User> user=userRepository.findById(id);
+            String token= authorInterceptor.getToken(httpServletRequest);
+            Long id= Long.parseLong(jwtUtil.extractId(token));
 
-            if(user.isEmpty()){
-                ApiResponse<String> apiResponse= ApiResponse.error(HttpStatus.NOT_FOUND.value(),"No user found","No user found");
-                return new ResponseEntity<>(apiResponse,HttpStatus.NOT_FOUND);
+            User userToUpdate=userRepository.findById(id).orElseThrow(()->new UserNotFoundException("User not found"));
+
+            boolean isUpdated=false;
+
+            if(!Objects.equals(userToUpdate.getName(), userUpdateRequestDto.getName())){
+                userToUpdate.setName(userUpdateRequestDto.getName());
+                isUpdated=true;
             }
 
-            User userToUpdate=user.get();
-            userToUpdate.setName(userUpdateRequestDto.getName());
-            userToUpdate.setEmail(userUpdateRequestDto.getEmail());
-            userToUpdate.setPassword(passwordEncoder.encode(userUpdateRequestDto.getPassword()));
+           if(!Objects.equals(userToUpdate.getEmail(), userUpdateRequestDto.getEmail())){
+               userToUpdate.setEmail(userUpdateRequestDto.getEmail());
+              isUpdated=true;
+           }
 
-            userRepository.save(userToUpdate);
+          if(!Objects.equals(userToUpdate.getPassword(), userUpdateRequestDto.getPassword())){
+              userToUpdate.setPassword(userUpdateRequestDto.getPassword());
+              isUpdated=true;
+          }
 
-            ApiResponse<String> apiResponse= ApiResponse.<String>success(HttpStatus.OK.value(), "User updated successfully","User updated successfully");
-            return new ResponseEntity<>(apiResponse,HttpStatus.OK);
+          if(!isUpdated){
+              ApiResponse<String> apiResponse= ApiResponse.<String>success(HttpStatus.OK.value(), "No changes made","No changes made");
+              return new ResponseEntity<>(apiResponse,HttpStatus.OK);
+          }
+
+          userRepository.save(userToUpdate);
+
+          ApiResponse<String> apiResponse= ApiResponse.<String>success(HttpStatus.OK.value(), "User updated successfully","User updated successfully");
+          return new ResponseEntity<>(apiResponse,HttpStatus.OK);
       }
 
       //Working properly
-      public ResponseEntity<ApiResponse<String>> addUserRoleById(Long id, RoleRequestDto roleRequestDto){
+      public ResponseEntity<ApiResponse<String>> addUserRoleById(RoleRequestDto roleRequestDto){
 
-          Optional<User> existingUser=userRepository.findById(id);
+          String token= authorInterceptor.getToken(httpServletRequest);
+          Long id= Long.parseLong(jwtUtil.extractId(token));
 
-          if(existingUser.isEmpty()){
-              ApiResponse<String> apiResponse= ApiResponse.error(HttpStatus.NOT_FOUND.value(),"No user found","No user found");
-              return new ResponseEntity<>(apiResponse,HttpStatus.NOT_FOUND);
-          }
+          User user=userRepository.findById(id).orElseThrow(()-> new UserNotFoundException("User not found"));
+          Role role=roleRepository.findByName(roleRequestDto.getRole()).orElseThrow(()->new RoleNotFoundException("Role not found"));
 
-          Optional<Role> optionalRole=roleRepository.findByName(roleRequestDto.getRole());
-
-          if(optionalRole.isEmpty()){
-              return new ResponseEntity<>(ApiResponse.error(
-                      HttpStatus.BAD_REQUEST.value(), "Invalid role name.", "Validation error."),
-                      HttpStatus.BAD_REQUEST);
-          }
-
-          Optional<UserRole> optionalUserRole=userRoleRepository.findByUserIdAndRoleId(id,optionalRole.get().getId());
+          Optional<UserRole> optionalUserRole=userRoleRepository.findByUserIdAndRoleId(id,role.getId());
 
           if(optionalUserRole.isPresent()){
               ApiResponse<String> apiResponse=ApiResponse.error(HttpStatus.CONFLICT.value(),"User already has this role","User already has this role");
               return new ResponseEntity<>(apiResponse,HttpStatus.CONFLICT);
           }
 
-          Role role=optionalRole.get();
-          User user=existingUser.get();
           UserRole userRole=new UserRole();
           userRole.setRole(role);
           userRole.setUser(user);

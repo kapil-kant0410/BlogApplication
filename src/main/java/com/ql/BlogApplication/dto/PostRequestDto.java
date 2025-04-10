@@ -25,9 +25,9 @@ public class PostRequestDto {
     @NotNull(message = "Published status must not be empty")
     private Boolean isPublished;
 
-    @NotNull(message = "Author ID must not be null")
-    @Positive(message = "Author ID must be a positive number")
-    private Long authorId;
+//    @NotNull(message = "Author ID must not be null")
+//    @Positive(message = "Author ID must be a positive number")
+//    private Long authorId;
 
     @NotNull(message = "Category ID must not be null")
     @Positive(message = "Category ID must be a positive number")

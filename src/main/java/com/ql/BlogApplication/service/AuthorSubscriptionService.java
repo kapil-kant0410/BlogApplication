@@ -1,4 +1,5 @@
 package com.ql.BlogApplication.service;
+
 import com.ql.BlogApplication.dto.ApiResponse;
 import com.ql.BlogApplication.dto.AuthorSubscriptionRequestDto;
 import com.ql.BlogApplication.dto.UserSubscribedAuthorResponseDto;
@@ -55,7 +56,6 @@ public class AuthorSubscriptionService {
             ApiResponse<String> apiResponse=ApiResponse.error(HttpStatus.BAD_REQUEST.value(), "Already subscribed","Already subscribed to author");
             return new ResponseEntity<>(apiResponse,HttpStatus.BAD_REQUEST);
         }
-
 
         User author=authorOptional.get();
         Set<UserRole> authorRoles=author.getUserRoles();

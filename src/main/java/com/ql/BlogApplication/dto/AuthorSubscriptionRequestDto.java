@@ -1,6 +1,5 @@
 package com.ql.BlogApplication.dto;
 
-import com.ql.BlogApplication.entity.User;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;

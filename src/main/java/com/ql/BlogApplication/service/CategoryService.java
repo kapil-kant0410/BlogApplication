@@ -17,14 +17,14 @@ public class CategoryService {
 
     private final CategoryRepository categoryRepository;
 
-    //working fine
+    //returns all category list from the category table
     public ResponseEntity<ApiResponse<List<Category>>> getAllCategory(){
          List<Category> allCategory= categoryRepository.findAll();
          ApiResponse<List<Category>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),allCategory,"Category fetched successfully");
          return new ResponseEntity<>(apiResponse,HttpStatus.OK);
     }
 
-    //check for role comes in response, duplicate not allowed and one space between words is allowed.
+    //check for role comes in response, duplicate not allowed and one space between words is allowed
     public ResponseEntity<ApiResponse<String>> createCategory(CategoryRequestDto categoryRequestDto){
 
            Category category=new Category();
@@ -40,8 +40,10 @@ public class CategoryService {
            return new ResponseEntity<>(apiResponse,HttpStatus.OK);
     }
 
-    public ResponseEntity<ApiResponse<String>> deleteCategory(Long id){
+    //delete a category and all posts under this category
+    public ResponseEntity<ApiResponse<String>> deleteCategory(Long id) {
         Optional<Category> optionalCategory=categoryRepository.findById(id);
+
         if(optionalCategory.isEmpty()){
             ApiResponse<String> apiResponse= ApiResponse.error(HttpStatus.NOT_FOUND.value(),"Category not found","Category not found");
             return new ResponseEntity<>(apiResponse,HttpStatus.NOT_FOUND);

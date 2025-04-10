@@ -4,9 +4,16 @@ import com.ql.BlogApplication.dto.CommentRequestDto;
 import com.ql.BlogApplication.entity.Comment;
 import com.ql.BlogApplication.entity.Post;
 import com.ql.BlogApplication.entity.User;
+import com.ql.BlogApplication.exception.CommentNotFoundException;
+import com.ql.BlogApplication.exception.PostNotFoundException;
+import com.ql.BlogApplication.exception.UserNotFoundException;
+import com.ql.BlogApplication.interceptor.AuthorInterceptor;
 import com.ql.BlogApplication.repository.CommentRepository;
 import com.ql.BlogApplication.repository.PostRepository;
 import com.ql.BlogApplication.repository.UserRepository;
+import com.ql.BlogApplication.util.JwtUtil;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -20,37 +27,37 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final UserRepository userRepository;
     private final PostRepository postRepository;
+    private final AuthorInterceptor authorInterceptor;
+    private final HttpServletRequest httpServletRequest;
+    private final JwtUtil jwtUtil;
 
-    CommentService(CommentRepository commentRepository,UserRepository userRepository,PostRepository postRepository){
+    CommentService(CommentRepository commentRepository, UserRepository userRepository, PostRepository postRepository, AuthorInterceptor authorInterceptor, HttpServletRequest httpServletRequest,JwtUtil jwtUtil){
         this.commentRepository=commentRepository;
         this.userRepository=userRepository;
         this.postRepository=postRepository;
+        this.authorInterceptor=authorInterceptor;
+        this.httpServletRequest=httpServletRequest;
+        this.jwtUtil=jwtUtil;
     }
 
     //working properly creating a comment
     public ResponseEntity<ApiResponse<String>> createComment(CommentRequestDto commentRequestDto){
 
-            Optional<User> user= userRepository.findById(commentRequestDto.getUserId());
+            String token= authorInterceptor.getToken(httpServletRequest);
+            Long id= Long.parseLong(jwtUtil.extractId(token));
 
-            if(user.isEmpty()){
-                ApiResponse<String> apiResponse=ApiResponse.error(HttpStatus.NOT_FOUND.value(),"User not found","User not found");
-                return new ResponseEntity<>(apiResponse,HttpStatus.NOT_FOUND);
+            User user= userRepository.findById(id).orElseThrow(()->new UserNotFoundException("User not found"));
+            Post post= postRepository.findById(commentRequestDto.getPostId()).orElseThrow(()->new PostNotFoundException("Post not found"));
+
+            if(post.getIsPublished()==Boolean.FALSE){
+                ApiResponse<String> apiResponse=ApiResponse.error(HttpStatus.CONFLICT.value(),"Cant comment on unpublished post","Cant comment on unpublished post");
+                return new ResponseEntity<>(apiResponse,HttpStatus.CONFLICT);
             }
-
-            Optional<Post> post= postRepository.findById(commentRequestDto.getPostId());
-
-            if(post.isEmpty()){
-            ApiResponse<String> apiResponse=ApiResponse.error(HttpStatus.NOT_FOUND.value(),"Post not found","Post not found");
-            return new ResponseEntity<>(apiResponse,HttpStatus.NOT_FOUND);
-            }
-
-            User newUser=user.get();
-            Post newPost=post.get();
 
             Comment comment=new Comment();
             comment.setContent(commentRequestDto.getContent());
-            comment.setUser(newUser);
-            comment.setPost(newPost);
+            comment.setUser(user);
+            comment.setPost(post);
 
             commentRepository.save(comment);
 
@@ -61,38 +68,25 @@ public class CommentService {
     //working properly only same user on same post allowed to update a comment.
     public ResponseEntity<ApiResponse<String>> updateComment(Long id, CommentRequestDto commentRequestDto){
 
-        Optional<Comment> optionalComment=commentRepository.findById(id);
-        Optional<User>    optionalUser=userRepository.findById(commentRequestDto.getUserId());
-        Optional<Post>    optionalPost=postRepository.findById(commentRequestDto.getPostId());
+        String token= authorInterceptor.getToken(httpServletRequest);
+        Long userId= Long.parseLong(jwtUtil.extractId(token));
 
-        if(optionalComment.isEmpty()){
-            ApiResponse<String> apiResponse=ApiResponse.error(HttpStatus.NOT_FOUND.value(),"No comment found","No comment found");
-            return new ResponseEntity<>(apiResponse,HttpStatus.NOT_FOUND);
-        }
+        postRepository.findById(commentRequestDto.getPostId()).orElseThrow(()->new PostNotFoundException("Post not found"));
 
-        if(optionalUser.isEmpty()){
-            ApiResponse<String> apiResponse=ApiResponse.error(HttpStatus.NOT_FOUND.value(),"No user found","No user found");
-            return new ResponseEntity<>(apiResponse,HttpStatus.NOT_FOUND);
-        }
+        Comment comment=commentRepository.findById(id).orElseThrow(()->new CommentNotFoundException("Comment not found"));
 
-        if(optionalPost.isEmpty()){
-            ApiResponse<String> apiResponse=ApiResponse.error(HttpStatus.NOT_FOUND.value(),"No post found","No post found");
-            return new ResponseEntity<>(apiResponse,HttpStatus.NOT_FOUND);
-        }
-
-       if(!Objects.equals(commentRequestDto.getUserId(), optionalComment.get().getUser().getId())){
+       if(!Objects.equals(userId, comment.getUser().getId())){
            ApiResponse<String> apiResponse=ApiResponse.error(HttpStatus.FORBIDDEN.value(),"User not authorized to update this comment","Unauthorized");
            return new ResponseEntity<>(apiResponse,HttpStatus.FORBIDDEN);
        }
 
-       if(!Objects.equals(commentRequestDto.getPostId(), optionalComment.get().getPost().getId())){
-           ApiResponse<String> apiResponse=ApiResponse.error(HttpStatus.FORBIDDEN.value(),"Comment does not belong to the given post","Unauthorized");
-           return new ResponseEntity<>(apiResponse,HttpStatus.FORBIDDEN);
+       if(!Objects.equals(commentRequestDto.getPostId(), comment.getPost().getId())){
+           ApiResponse<String> apiResponse=ApiResponse.error(HttpStatus.BAD_REQUEST.value(),"Comment does not belong to the given post","Unauthorized");
+           return new ResponseEntity<>(apiResponse,HttpStatus.BAD_REQUEST);
        }
 
-        Comment commentToUpdate=optionalComment.get();
-        commentToUpdate.setContent(commentRequestDto.getContent());
-        commentRepository.save(commentToUpdate);
+        comment.setContent(commentRequestDto.getContent());
+        commentRepository.save(comment);
 
         ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(),"comment updated successfully","comment updated successfully.");
         return new ResponseEntity<>(apiResponse,HttpStatus.OK);
@@ -101,11 +95,14 @@ public class CommentService {
     //working properly deleting a comment by their comment id
     public ResponseEntity<ApiResponse<String>> deleteComment(Long id){
 
-        Optional<Comment> optionalComment=commentRepository.findById(id);
+        String token= authorInterceptor.getToken(httpServletRequest);
+        Long userId= Long.parseLong(jwtUtil.extractId(token));
 
-        if(optionalComment.isEmpty()){
-            ApiResponse<String> apiResponse=ApiResponse.error(HttpStatus.NOT_FOUND.value(),"No comment found","No comment found");
-            return new ResponseEntity<>(apiResponse,HttpStatus.NOT_FOUND);
+        Comment comment=commentRepository.findById(id).orElseThrow(()->new CommentNotFoundException("Comment not found"));
+
+        if(comment.getUser().getId()!=userId){
+            ApiResponse<String> apiResponse=ApiResponse.error(HttpStatus.BAD_REQUEST.value(),"Not allowed","Not allowed");
+            return new ResponseEntity<>(apiResponse,HttpStatus.BAD_REQUEST);
         }
 
         commentRepository.deleteById(id);

@@ -1,6 +1,5 @@
 package com.ql.BlogApplication.service;
 
-import com.ql.BlogApplication.config.JwtUtil;
 import com.ql.BlogApplication.dto.ApiResponse;
 import com.ql.BlogApplication.dto.UserLoginRequestDto;
 import com.ql.BlogApplication.dto.UserRegisterRequestDto;
@@ -10,11 +9,12 @@ import com.ql.BlogApplication.entity.UserRole;
 import com.ql.BlogApplication.repository.RoleRepository;
 import com.ql.BlogApplication.repository.UserRepository;
 import com.ql.BlogApplication.repository.UserRoleRepository;
+import com.ql.BlogApplication.util.JwtUtil;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -24,14 +24,12 @@ public class AuthService {
     private final RoleRepository roleRepository;
     private final UserRoleRepository userRoleRepository;
     private final JwtUtil jwtUtils;
-    private final BCryptPasswordEncoder passwordEncoder;
 
-      AuthService(UserRepository userRepository, RoleRepository roleRepository, UserRoleRepository userRoleRepository, JwtUtil jwtUtils, BCryptPasswordEncoder passwordEncoder){
+      AuthService(UserRepository userRepository, RoleRepository roleRepository, UserRoleRepository userRoleRepository, JwtUtil jwtUtils){
               this.userRepository=userRepository;
               this.roleRepository=roleRepository;
               this.userRoleRepository=userRoleRepository;
               this.jwtUtils=jwtUtils;
-              this.passwordEncoder=passwordEncoder;
       }
 
       public ResponseEntity<ApiResponse<String>> registerUser(UserRegisterRequestDto userRequestDto){
@@ -53,8 +51,7 @@ public class AuthService {
         User newUser = new User();
         newUser.setName(userRequestDto.getName());
         newUser.setEmail(userRequestDto.getEmail());
-        newUser.setPassword(passwordEncoder.encode(userRequestDto.getPassword()));
-        // newUser.setPassword(userRequestDto.getPassword());
+        newUser.setPassword(userRequestDto.getPassword());
         userRepository.save(newUser);
 
         UserRole userRole=new UserRole();
@@ -63,7 +60,7 @@ public class AuthService {
 
         userRoleRepository.save(userRole);
 
-        ApiResponse<String> apiResponse= ApiResponse.<String>success(HttpStatus.CREATED.value(), jwtUtils.generateToken(userRequestDto.getEmail()),"User registered successfully");
+        ApiResponse<String> apiResponse= ApiResponse.<String>success(HttpStatus.CREATED.value(), jwtUtils.generateToken(newUser.getId()),"User registered successfully");
         return new ResponseEntity<>(apiResponse,HttpStatus.CREATED);
     }
 
@@ -76,12 +73,15 @@ public class AuthService {
                 return new ResponseEntity<>(apiResponse,HttpStatus.NOT_FOUND);
             }
 
-            if(!passwordEncoder.matches(authRequestDto.getPassword(),user.get().getPassword())){
-                ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.UNAUTHORIZED.value(), "Invalid credentials","Invalid credentials");
-                return new ResponseEntity<>(apiResponse,HttpStatus.UNAUTHORIZED);
-            }
+             String dataBasePassword=user.get().getPassword();
+             String requestPassword=authRequestDto.getPassword();
 
-            String token=jwtUtils.generateToken(authRequestDto.getEmail());
+             if(!Objects.equals(dataBasePassword, requestPassword)){
+                 ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.UNAUTHORIZED.value(), "Password mismatched","password mismatched");
+                 return new ResponseEntity<>(apiResponse,HttpStatus.UNAUTHORIZED);
+             }
+
+            String token=jwtUtils.generateToken(user.get().getId());
 
             ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(), token,"Successfully signed in.");
             return new ResponseEntity<>(apiResponse,HttpStatus.OK);
