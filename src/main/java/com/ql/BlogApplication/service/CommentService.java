@@ -1,4 +1,5 @@
 package com.ql.BlogApplication.service;
+
 import com.ql.BlogApplication.dto.ApiResponse;
 import com.ql.BlogApplication.dto.CommentRequestDto;
 import com.ql.BlogApplication.entity.Comment;
@@ -12,14 +13,12 @@ import com.ql.BlogApplication.repository.CommentRepository;
 import com.ql.BlogApplication.repository.PostRepository;
 import com.ql.BlogApplication.repository.UserRepository;
 import com.ql.BlogApplication.util.JwtUtil;
-import jakarta.servlet.http.HttpServlet;
+import com.ql.BlogApplication.util.TokenContext;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-
 import java.util.Objects;
-import java.util.Optional;
 
 @Service
 public class CommentService {
@@ -27,23 +26,19 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final UserRepository userRepository;
     private final PostRepository postRepository;
-    private final AuthorInterceptor authorInterceptor;
-    private final HttpServletRequest httpServletRequest;
     private final JwtUtil jwtUtil;
 
     CommentService(CommentRepository commentRepository, UserRepository userRepository, PostRepository postRepository, AuthorInterceptor authorInterceptor, HttpServletRequest httpServletRequest,JwtUtil jwtUtil){
         this.commentRepository=commentRepository;
         this.userRepository=userRepository;
         this.postRepository=postRepository;
-        this.authorInterceptor=authorInterceptor;
-        this.httpServletRequest=httpServletRequest;
         this.jwtUtil=jwtUtil;
     }
 
     //working properly creating a comment
     public ResponseEntity<ApiResponse<String>> createComment(CommentRequestDto commentRequestDto){
 
-            String token= authorInterceptor.getToken(httpServletRequest);
+            String token= TokenContext.getToken();
             Long id= Long.parseLong(jwtUtil.extractId(token));
 
             User user= userRepository.findById(id).orElseThrow(()->new UserNotFoundException("User not found"));
@@ -68,7 +63,7 @@ public class CommentService {
     //working properly only same user on same post allowed to update a comment.
     public ResponseEntity<ApiResponse<String>> updateComment(Long id, CommentRequestDto commentRequestDto){
 
-        String token= authorInterceptor.getToken(httpServletRequest);
+        String token= TokenContext.getToken();
         Long userId= Long.parseLong(jwtUtil.extractId(token));
 
         postRepository.findById(commentRequestDto.getPostId()).orElseThrow(()->new PostNotFoundException("Post not found"));
@@ -95,7 +90,7 @@ public class CommentService {
     //working properly deleting a comment by their comment id
     public ResponseEntity<ApiResponse<String>> deleteComment(Long id){
 
-        String token= authorInterceptor.getToken(httpServletRequest);
+        String token= TokenContext.getToken();
         Long userId= Long.parseLong(jwtUtil.extractId(token));
 
         Comment comment=commentRepository.findById(id).orElseThrow(()->new CommentNotFoundException("Comment not found"));

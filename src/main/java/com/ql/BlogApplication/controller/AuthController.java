@@ -30,5 +30,10 @@ public class AuthController {
              return authService.login(authRequestDto);
       }
 
+      @PostMapping("/logout")
+      public ResponseEntity<ApiResponse<String>> logout(){
+           return authService.logout();
+      }
+
 
 }

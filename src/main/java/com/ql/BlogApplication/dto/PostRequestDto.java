@@ -19,15 +19,11 @@ public class PostRequestDto {
     @Size(min = 10, max = 5000, message = "Content must be between 10 and 5000 characters.")
     private String content;
 
-    @NotBlank(message = "Image url can not be null")
-    private String imageURL;
-
     @NotNull(message = "Published status must not be empty")
     private Boolean isPublished;
 
-//    @NotNull(message = "Author ID must not be null")
-//    @Positive(message = "Author ID must be a positive number")
-//    private Long authorId;
+    @NotNull(message = "ImageUrl can not be null")
+    private String imageUrl;
 
     @NotNull(message = "Category ID must not be null")
     @Positive(message = "Category ID must be a positive number")

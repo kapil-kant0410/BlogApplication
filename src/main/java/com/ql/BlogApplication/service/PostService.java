@@ -1,10 +1,12 @@
 package com.ql.BlogApplication.service;
 
+import com.ql.BlogApplication.constant.MessageCodes;
 import com.ql.BlogApplication.dto.ApiResponse;
 import com.ql.BlogApplication.dto.CommentResponseDto;
 import com.ql.BlogApplication.dto.PostRequestDto;
 import com.ql.BlogApplication.dto.PostResponseDto;
 import com.ql.BlogApplication.entity.*;
+import com.ql.BlogApplication.exception.UserNotFoundException;
 import com.ql.BlogApplication.interceptor.AuthorInterceptor;
 import com.ql.BlogApplication.mapper.CommentMapper;
 import com.ql.BlogApplication.mapper.PostMapper;
@@ -12,6 +14,7 @@ import com.ql.BlogApplication.repository.CategoryRepository;
 import com.ql.BlogApplication.repository.PostRepository;
 import com.ql.BlogApplication.repository.UserRepository;
 import com.ql.BlogApplication.util.JwtUtil;
+import com.ql.BlogApplication.util.TokenContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,20 +41,16 @@ public class PostService {
       private final UserRepository userRepository;
       private final CategoryRepository categoryRepository;
       private final JwtUtil jwtUtil;
-      private final AuthorInterceptor authorInterceptor;
-      private final HttpServletRequest httpServletRequest;
       @Value("${file.uploads-dir}")
       private String uploadDir;
       private static final Logger logger = LoggerFactory.getLogger(PostService.class);
 
 
-    PostService(PostRepository postRepository, UserRepository userRepository, CategoryRepository categoryRepository, JwtUtil jwtUtil, AuthorInterceptor authorInterceptor, HttpServletRequest httpServletRequest){
+    PostService(PostRepository postRepository, UserRepository userRepository, CategoryRepository categoryRepository, JwtUtil jwtUtil){
           this.postRepository=postRepository;
           this.userRepository=userRepository;
           this.categoryRepository=categoryRepository;
           this.jwtUtil=jwtUtil;
-          this.authorInterceptor=authorInterceptor;
-          this.httpServletRequest = httpServletRequest;
       }
 
       //working fine getting all post
@@ -78,10 +77,12 @@ public class PostService {
           Post newPost=new Post();
           newPost.setTitle(postRequestDto.getTitle());
           newPost.setContent(postRequestDto.getContent());
-          String token= authorInterceptor.getToken(httpServletRequest);
+          newPost.setImageURL(postRequestDto.getImageUrl());
+
+          String token= TokenContext.getToken();
           Long id= Long.parseLong(jwtUtil.extractId(token));
-          Optional<User> user=userRepository.findById(id);
-          newPost.setAuthor(user.get());
+          User user=userRepository.findById(id).orElseThrow(()-> new UserNotFoundException(MessageCodes.messages.get(106)));
+          newPost.setAuthor(user);
           newPost.setCategory(category.get());
           postRepository.save(newPost);
 
@@ -136,7 +137,7 @@ public class PostService {
 
             List<PostResponseDto>  postResponseDtoList = PostMapper.toDtoList(filterPosts);
 
-            ApiResponse<List<PostResponseDto>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),postResponseDtoList,"All posts.");
+            ApiResponse<List<PostResponseDto>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),postResponseDtoList,"All posts inside category");
             return new ResponseEntity<>(apiResponse,HttpStatus.OK);
       }
 

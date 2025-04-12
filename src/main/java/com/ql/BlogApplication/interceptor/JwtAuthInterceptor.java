@@ -3,6 +3,7 @@ package com.ql.BlogApplication.interceptor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ql.BlogApplication.dto.ApiResponse;
 import com.ql.BlogApplication.util.JwtUtil;
+import com.ql.BlogApplication.util.TokenContext;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.transaction.Transactional;
@@ -30,10 +31,11 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
 
         if(authHeader!=null&&authHeader.startsWith("Bearer ")){
             String token=authHeader.substring(7);
+            TokenContext.setToken(token);
             String id=jwtUtil.extractId(token);
-            logger.info("token is {} and id inside is {}",token,id);
+            logger.info("token is {} and id inside is  {}",token,id);
             if(jwtUtil.validateToken(token)){
-                return true;
+                 return true;
             }
         }
 
@@ -46,5 +48,8 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
         return false;
     }
 
+    public void afterCompletion(HttpServletRequest request,HttpServletResponse response,Object handler){
+         TokenContext.clearToken();
+    }
 
 }

@@ -40,8 +40,15 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(exceptionResponse, HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(UserLoggedOutException.class)
+    public ResponseEntity<ApiResponse<String>> handleUserLoggedOutException(UserLoggedOutException userLoggedOutException){
+        logger.warn("Logged out user: {}", userLoggedOutException.getMessage());
+        ApiResponse<String> exceptionResponse=ApiResponse.error(HttpStatus.UNAUTHORIZED.value(),"User already logged out","Logged out user");
+        return new ResponseEntity<>(exceptionResponse, HttpStatus.UNAUTHORIZED);
+    }
+
     @ExceptionHandler(RoleNotFoundException.class)
-    public ResponseEntity<ApiResponse<String>> handleRoleNotFoundException(UserNotFoundException ex){
+    public ResponseEntity<ApiResponse<String>> handleRoleNotFoundException(RoleNotFoundException ex){
         logger.warn("Role not found: {}", ex.getMessage());
         ApiResponse<String> exceptionResponse=ApiResponse.error(HttpStatus.NOT_FOUND.value(), ex.getMessage(),"Role not found");
         return new ResponseEntity<>(exceptionResponse, HttpStatus.NOT_FOUND);

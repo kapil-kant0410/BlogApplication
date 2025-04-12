@@ -1,8 +1,10 @@
 package com.ql.BlogApplication.interceptor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ql.BlogApplication.constant.MessageCodes;
 import com.ql.BlogApplication.dto.ApiResponse;
 import com.ql.BlogApplication.entity.User;
+import com.ql.BlogApplication.exception.UserNotFoundException;
 import com.ql.BlogApplication.repository.UserRepository;
 import com.ql.BlogApplication.util.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
@@ -43,13 +45,13 @@ public class AuthorInterceptor implements HandlerInterceptor {
             String token=authHeader.substring(7);
             if(jwtUtil.validateToken((token))){
                 Long id= Long.parseLong(jwtUtil.extractId(token));
-                Optional<User> user=userRepository.findById(id);
-                if(user.isPresent()){
-                      Boolean isAuthor= user.get().getUserRoles().stream().map(userRole -> {
+                User user=userRepository.findById(id).orElseThrow(()-> new UserNotFoundException(MessageCodes.messages.get(106)));
+
+                Boolean isAuthor= user.getUserRoles().stream().map(userRole -> {
                            return userRole.getRole().getName();
                        }).anyMatch("author"::equals);
-                      if(Boolean.TRUE.equals(isAuthor)) return true;
-                }
+
+                if(Boolean.TRUE.equals(isAuthor)) return true;
             }
         }
 

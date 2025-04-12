@@ -12,6 +12,7 @@ import com.ql.BlogApplication.repository.LikeRepository;
 import com.ql.BlogApplication.repository.PostRepository;
 import com.ql.BlogApplication.repository.UserRepository;
 import com.ql.BlogApplication.util.JwtUtil;
+import com.ql.BlogApplication.util.TokenContext;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -45,7 +46,7 @@ public class LikeService {
     //working properly like and unlike a post on same endpoint
     public ResponseEntity<ApiResponse<String>> likeAPost(PostLikeRequestDto postLikeRequestDto){
 
-        String token= authorInterceptor.getToken(httpServletRequest);
+        String token= TokenContext.getToken();
         Long id= Long.parseLong(jwtUtil.extractId(token));
 
         User user=userRepository.findById(id).orElseThrow(()->new UserNotFoundException("User not found"));
@@ -72,7 +73,7 @@ public class LikeService {
     //working properly like and unlike a comment on same endpoint
     public ResponseEntity<ApiResponse<String>> likeAComment(CommentLikeRequestDto commentLikeRequestDto){
 
-        String token= authorInterceptor.getToken(httpServletRequest);
+        String token=TokenContext.getToken();
         Long id= Long.parseLong(jwtUtil.extractId(token));
 
         User user=userRepository.findById(id).orElseThrow(()->new UserNotFoundException("User not found"));
