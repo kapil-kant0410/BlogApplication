@@ -2,6 +2,7 @@ package com.ql.BlogApplication.controller;
 
 import com.ql.BlogApplication.dto.ApiResponse;
 import com.ql.BlogApplication.dto.UserLoginRequestDto;
+import com.ql.BlogApplication.dto.UserOtpLoginRequestDto;
 import com.ql.BlogApplication.dto.UserRegisterRequestDto;
 import com.ql.BlogApplication.service.AuthService;
 import jakarta.validation.Valid;
@@ -21,13 +22,18 @@ public class AuthController {
        private final AuthService authService;
 
        @PostMapping("/register")
-       public ResponseEntity<ApiResponse<String>> registerUser(@Valid @RequestBody UserRegisterRequestDto userRequestDto){
-           return authService.registerUser(userRequestDto);
+       public ResponseEntity<ApiResponse<String>> registerUser(@Valid @RequestBody UserRegisterRequestDto userRegisterRequestDto){
+           return authService.registerUser(userRegisterRequestDto);
        }
 
-      @PostMapping("/login")
-      public ResponseEntity<ApiResponse<String>> loginUser(@RequestBody UserLoginRequestDto authRequestDto) {
-             return authService.login(authRequestDto);
+      @PostMapping("/login-password")
+      public ResponseEntity<ApiResponse<String>> loginByPassword(@RequestBody UserLoginRequestDto userLoginRequestDto) {
+             return authService.loginByPassword(userLoginRequestDto);
+      }
+
+      @PostMapping("/login-otp")
+      public ResponseEntity<ApiResponse<String>> loginByOtp(@RequestBody UserOtpLoginRequestDto userOtpLoginRequestDto){
+         return authService.loginByOtp(userOtpLoginRequestDto);
       }
 
       @PostMapping("/logout")

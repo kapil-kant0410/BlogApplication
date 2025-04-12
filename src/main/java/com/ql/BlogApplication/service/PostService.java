@@ -94,11 +94,14 @@ public class PostService {
 
         try{
 
+            String token= TokenContext.getToken();
+            Long userId= Long.parseLong(jwtUtil.extractId(token));
+
             String fileName= UUID.randomUUID()+"_"+multipartFile.getOriginalFilename();
-            Optional<Post> optionalPost=postRepository.findById(id);
+            Optional<Post> optionalPost=postRepository.findByAuthorIdAndId(userId,id);
 
             if(optionalPost.isEmpty()){
-                ApiResponse<String> apiResponse=ApiResponse.error(HttpStatus.NOT_FOUND.value(),"post does not exists","post does not exists");
+                ApiResponse<String> apiResponse=ApiResponse.error(HttpStatus.NOT_FOUND.value(),MessageCodes.messages.get(112),MessageCodes.messages.get(112));
                 return new ResponseEntity<>(apiResponse,HttpStatus.NOT_FOUND);
             }
 
@@ -144,10 +147,13 @@ public class PostService {
       //working fine getting all comment list under a post
       public ResponseEntity<ApiResponse<List<CommentResponseDto>>> findAllCommentByPostId(Long id){
 
-          Optional<Post> optionalPost=postRepository.findById(id);
+          String token= TokenContext.getToken();
+          Long userId= Long.parseLong(jwtUtil.extractId(token));
+
+          Optional<Post> optionalPost=postRepository.findByAuthorIdAndId(userId,id);
 
           if(optionalPost.isEmpty()){
-              ApiResponse<List<CommentResponseDto>> apiResponse=ApiResponse.error(HttpStatus.NOT_FOUND.value(),null, "No post found.");
+              ApiResponse<List<CommentResponseDto>> apiResponse=ApiResponse.error(HttpStatus.NOT_FOUND.value(),null, "No post found");
               return new ResponseEntity<>(apiResponse,HttpStatus.NOT_FOUND);
           }
 

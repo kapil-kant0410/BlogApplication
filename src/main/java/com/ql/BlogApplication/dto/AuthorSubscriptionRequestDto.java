@@ -9,10 +9,6 @@ import lombok.Setter;
 @Setter
 public class AuthorSubscriptionRequestDto {
 
-    @NotNull(message = "User Id must not be null")
-    @Min(value = 1, message = "User Id must be greater than or equal to 1")
-    private Long userId;
-
     @NotNull(message = "Author Id must not be null")
     @Min(value = 1, message = "Author Id must be greater than or equal to 1")
     private Long authorId;

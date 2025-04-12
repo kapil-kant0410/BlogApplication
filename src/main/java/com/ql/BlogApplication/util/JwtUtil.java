@@ -45,6 +45,7 @@ public class JwtUtil {
         try {
             Jwts.parser().setSigningKey(SECRET_KEY).parseClaimsJws(token);
             Long id=Long.parseLong(extractId(token));
+            logger.info("from inside validate token");
             User user=userRepository.findById(id).orElseThrow(()-> new UserNotFoundException(MessageCodes.messages.get(106)));
 
             Claims claims = Jwts.parser()

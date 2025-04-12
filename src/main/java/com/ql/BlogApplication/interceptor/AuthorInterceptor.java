@@ -15,7 +15,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
-import java.util.Optional;
 
 @Component
 @Transactional
@@ -29,11 +28,6 @@ public class AuthorInterceptor implements HandlerInterceptor {
     AuthorInterceptor(JwtUtil jwtUtil,UserRepository userRepository){
         this.jwtUtil=jwtUtil;
         this.userRepository=userRepository;
-    }
-
-    public  String getToken(HttpServletRequest httpServletRequest){
-        String authHeader=httpServletRequest.getHeader("Authorization");
-        return authHeader.substring(7);
     }
 
     @Override
@@ -62,6 +56,5 @@ public class AuthorInterceptor implements HandlerInterceptor {
         httpServletResponse.getWriter().write(json);
         return false;
     }
-
 
 }

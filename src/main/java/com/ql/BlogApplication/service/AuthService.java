@@ -3,6 +3,7 @@ package com.ql.BlogApplication.service;
 import com.ql.BlogApplication.constant.MessageCodes;
 import com.ql.BlogApplication.dto.ApiResponse;
 import com.ql.BlogApplication.dto.UserLoginRequestDto;
+import com.ql.BlogApplication.dto.UserOtpLoginRequestDto;
 import com.ql.BlogApplication.dto.UserRegisterRequestDto;
 import com.ql.BlogApplication.entity.Role;
 import com.ql.BlogApplication.entity.User;
@@ -14,6 +15,7 @@ import com.ql.BlogApplication.repository.RoleRepository;
 import com.ql.BlogApplication.repository.UserRepository;
 import com.ql.BlogApplication.repository.UserRoleRepository;
 import com.ql.BlogApplication.util.JwtUtil;
+import com.ql.BlogApplication.util.TokenContext;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,17 +29,14 @@ public class AuthService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final UserRoleRepository userRoleRepository;
-    private final AuthorInterceptor authorInterceptor;
-    private final HttpServletRequest httpServletRequest;
+
     private final JwtUtil jwtUtil;
 
-      AuthService(UserRepository userRepository, RoleRepository roleRepository, UserRoleRepository userRoleRepository, JwtUtil jwtUtils,HttpServletRequest httpServletRequest,AuthorInterceptor authorInterceptor){
+      AuthService(UserRepository userRepository, RoleRepository roleRepository, UserRoleRepository userRoleRepository, JwtUtil jwtUtils){
               this.userRepository=userRepository;
               this.roleRepository=roleRepository;
               this.userRoleRepository=userRoleRepository;
               this.jwtUtil=jwtUtils;
-              this.httpServletRequest=httpServletRequest;
-              this.authorInterceptor=authorInterceptor;
       }
 
       public ResponseEntity<ApiResponse<String>> registerUser(UserRegisterRequestDto userRequestDto){
@@ -65,7 +64,7 @@ public class AuthService {
         return new ResponseEntity<>(apiResponse,HttpStatus.CREATED);
     }
 
-      public ResponseEntity<ApiResponse<String>> login(UserLoginRequestDto authRequestDto){
+      public ResponseEntity<ApiResponse<String>> loginByPassword(UserLoginRequestDto authRequestDto){
 
             User user=userRepository.findByEmail(authRequestDto.getEmail()).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(106)));
 
@@ -83,9 +82,17 @@ public class AuthService {
             return new ResponseEntity<>(apiResponse,HttpStatus.OK);
       }
 
+      public ResponseEntity<ApiResponse<String>> loginByOtp(UserOtpLoginRequestDto userOtpLoginRequestDto){
+
+
+
+          ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(), "Logged in successfully",MessageCodes.messages.get(102));
+          return new ResponseEntity<>(apiResponse,HttpStatus.OK);
+      }
+
       public ResponseEntity<ApiResponse<String>> logout(){
 
-          String token= authorInterceptor.getToken(httpServletRequest);
+          String token= TokenContext.getToken();
           Long id= Long.parseLong(jwtUtil.extractId(token));
 
           User user=userRepository.findById(id).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(106)));
