@@ -26,7 +26,7 @@ public class UserController {
           return userService.getAllUsers();
      }
 
-     @GetMapping("/find-user/{id}")
+     @GetMapping("/{id}")
      public ResponseEntity<ApiResponse<UserResponseDto>> getUserById(@PathVariable Long id){
          logger.info("Fetching user with ID: {}", id);
          return userService.getUserById(id);

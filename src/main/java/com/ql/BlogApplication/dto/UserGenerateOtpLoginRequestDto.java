@@ -7,7 +7,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class UserOtpLoginRequestDto {
+public class UserGenerateOtpLoginRequestDto {
     @Email(message = "Please enter valid email")
     private String email;
 }

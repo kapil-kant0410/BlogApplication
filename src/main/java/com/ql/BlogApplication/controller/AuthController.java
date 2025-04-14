@@ -1,9 +1,6 @@
 package com.ql.BlogApplication.controller;
 
-import com.ql.BlogApplication.dto.ApiResponse;
-import com.ql.BlogApplication.dto.UserLoginRequestDto;
-import com.ql.BlogApplication.dto.UserOtpLoginRequestDto;
-import com.ql.BlogApplication.dto.UserRegisterRequestDto;
+import com.ql.BlogApplication.dto.*;
 import com.ql.BlogApplication.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,14 +23,19 @@ public class AuthController {
            return authService.registerUser(userRegisterRequestDto);
        }
 
-      @PostMapping("/login-password")
+      @PostMapping("/login")
       public ResponseEntity<ApiResponse<String>> loginByPassword(@RequestBody UserLoginRequestDto userLoginRequestDto) {
              return authService.loginByPassword(userLoginRequestDto);
       }
 
-      @PostMapping("/login-otp")
-      public ResponseEntity<ApiResponse<String>> loginByOtp(@RequestBody UserOtpLoginRequestDto userOtpLoginRequestDto){
-         return authService.loginByOtp(userOtpLoginRequestDto);
+      @PostMapping("/generate-otp")
+      public ResponseEntity<ApiResponse<String>> generateOtp(@RequestBody UserGenerateOtpLoginRequestDto userGenerateOtpLoginRequestDto){
+         return authService.generateOtp(userGenerateOtpLoginRequestDto);
+      }
+
+      @PostMapping("/validate-otp")
+      public ResponseEntity<ApiResponse<String>> validateOtp(@RequestBody UserValidateOtpLoginRequestDto userValidateOtpLoginRequestDto){
+        return authService.validateOtp(userValidateOtpLoginRequestDto);
       }
 
       @PostMapping("/logout")
