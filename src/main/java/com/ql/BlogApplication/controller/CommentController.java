@@ -1,0 +1,33 @@
+package com.ql.BlogApplication.controller;
+
+import com.ql.BlogApplication.dto.ApiResponse;
+import com.ql.BlogApplication.dto.CommentRequestDto;
+import com.ql.BlogApplication.service.CommentService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/comment")
+@RequiredArgsConstructor
+public class CommentController {
+
+    private final CommentService commentService;
+
+    @PostMapping("/create")
+    ResponseEntity<ApiResponse<String>> createComment(@Valid @RequestBody CommentRequestDto commentRequestDto){
+         return commentService.createComment(commentRequestDto);
+    }
+
+    @PutMapping("/update/{id}")
+    ResponseEntity<ApiResponse<String>> updateComment(@PathVariable Long id, @Valid @RequestBody CommentRequestDto commentRequestDto){
+        return commentService.updateComment(id,commentRequestDto);
+    }
+
+    @DeleteMapping("/delete/{id}")
+    ResponseEntity<ApiResponse<String>> deleteComment(@PathVariable Long id){
+        return commentService.deleteComment(id);
+    }
+
+}
