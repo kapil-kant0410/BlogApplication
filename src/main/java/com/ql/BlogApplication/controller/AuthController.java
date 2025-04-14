@@ -4,6 +4,8 @@ import com.ql.BlogApplication.dto.*;
 import com.ql.BlogApplication.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 public class AuthController {
 
+       Logger logger= LoggerFactory.getLogger(AuthController.class);
        private final AuthService authService;
 
        @PostMapping("/register")
@@ -30,7 +33,8 @@ public class AuthController {
 
       @PostMapping("/generate-otp")
       public ResponseEntity<ApiResponse<String>> generateOtp(@Valid @RequestBody OtpGenerationRequestDto otpGenerationRequestDto){
-         return authService.generateOtp(otpGenerationRequestDto);
+           logger.info("inside from generate otp");
+           return authService.generateOtp(otpGenerationRequestDto);
       }
 
       @PostMapping("/validate-otp")

@@ -121,12 +121,21 @@ public class AuthService {
           String validOtp=otpStore.get(otpValidationRequestDto.getEmail());
           Long expiryTime=otpExpiry.get(otpValidationRequestDto.getEmail());
 
+          if (validOtp == null || expiryTime == null) {
+              ApiResponse<String> apiResponse = ApiResponse.error(
+                      HttpStatus.BAD_REQUEST.value(),
+                      "OTP not found or expired",
+                      "OTP not found or expired"
+              );
+              return new ResponseEntity<>(apiResponse, HttpStatus.BAD_REQUEST);
+          }
+
           if(expiryTime<System.currentTimeMillis()){
               ApiResponse<String> apiResponse=ApiResponse.error(HttpStatus.BAD_REQUEST.value(), "Otp expired","Otp expired");
               return new ResponseEntity<>(apiResponse,HttpStatus.BAD_REQUEST);
           }
 
-          if(validOtp!=null  && validOtp.equals(otpValidationRequestDto.getOtp())){
+          if(validOtp.equals(otpValidationRequestDto.getOtp())){
               String token=jwtUtil.generateToken(user.getId());
               otpStore.remove(otpValidationRequestDto.getEmail());
               otpExpiry.remove(otpValidationRequestDto.getEmail());

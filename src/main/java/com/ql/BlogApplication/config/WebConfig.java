@@ -15,10 +15,10 @@ public class WebConfig implements WebMvcConfigurer {
     final AuthorInterceptor authorInterceptor;
 
     private final String[] WHITELIST={
-            "api/auth/login",
-            "api/auth/register",
-            "api/auth/generate-otp",
-            "api/auth/validate-otp"
+            "/api/auth/login",
+            "/api/auth/register",
+            "/api/auth/generate-otp",
+            "/api/auth/validate-otp"
     };
 
     public WebConfig(JwtAuthInterceptor jwtAuthInterceptor,AuthorInterceptor authorInterceptor) {
