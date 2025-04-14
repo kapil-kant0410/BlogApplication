@@ -8,14 +8,10 @@ import lombok.Setter;
 @Getter
 @Setter
 
-
 public class CommentRequestDto {
       
       @NotBlank(message = "content field must not be empty")
       private String content;
-
-      @NotNull(message="User Id required.")
-      private  Long userId;
 
       @NotNull(message = "Post Id required.")
       private Long postId;

@@ -31,9 +31,9 @@ public class AuthorSubscriptionController {
         return authorSubscriptionService.unsubscribeFromAuthor(authorSubscriptionRequestDto);
     }
 
-    @GetMapping("/allSubscriptions/{id}")
-    ResponseEntity<ApiResponse<List<UserSubscribedAuthorResponseDto>>> getUserSubscriptions(@Valid @PathVariable Long id){
-        return authorSubscriptionService.getUserSubscriptions(id);
+    @GetMapping("/allSubscriptions")
+    ResponseEntity<ApiResponse<List<UserSubscribedAuthorResponseDto>>> getUserSubscriptions(){
+        return authorSubscriptionService.getUserSubscriptions();
     }
 
     @GetMapping("/allSubscribers/{id}")

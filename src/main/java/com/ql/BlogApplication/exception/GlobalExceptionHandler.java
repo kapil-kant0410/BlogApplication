@@ -1,5 +1,7 @@
 package com.ql.BlogApplication.exception;
+
 import com.ql.BlogApplication.dto.ApiResponse;
+import io.jsonwebtoken.ExpiredJwtException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -10,6 +12,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import jakarta.validation.ConstraintViolationException;
+import io.jsonwebtoken.security.SignatureException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -38,12 +41,35 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(exceptionResponse, HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(UserLoggedOutException.class)
+    public ResponseEntity<ApiResponse<String>> handleUserLoggedOutException(UserLoggedOutException userLoggedOutException){
+        logger.warn("Logged out user: {}", userLoggedOutException.getMessage());
+        ApiResponse<String> exceptionResponse=ApiResponse.error(HttpStatus.UNAUTHORIZED.value(),"User already logged out","Logged out user");
+        return new ResponseEntity<>(exceptionResponse, HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(RoleNotFoundException.class)
+    public ResponseEntity<ApiResponse<String>> handleRoleNotFoundException(RoleNotFoundException ex){
+        logger.warn("Role not found: {}", ex.getMessage());
+        ApiResponse<String> exceptionResponse=ApiResponse.error(HttpStatus.NOT_FOUND.value(), ex.getMessage(),"Role not found");
+        return new ResponseEntity<>(exceptionResponse, HttpStatus.NOT_FOUND);
+    }
+
+
     @ExceptionHandler(PostNotFoundException.class)
     public ResponseEntity<ApiResponse<String>> handlePostNotFoundException(PostNotFoundException ex){
            logger.warn("Post not found: {}", ex.getMessage());
            ApiResponse<String> exceptionResponse=ApiResponse.error(HttpStatus.NOT_FOUND.value(), ex.getMessage(),"Post not found");
            return new ResponseEntity<>(exceptionResponse,HttpStatus.NOT_FOUND);
     }
+
+    @ExceptionHandler(CommentNotFoundException.class)
+    public ResponseEntity<ApiResponse<String>> handleCommentNotFoundException(CommentNotFoundException ex){
+        logger.warn("Comment not found: {}", ex.getMessage());
+        ApiResponse<String> exceptionResponse=ApiResponse.error(HttpStatus.NOT_FOUND.value(), ex.getMessage(),"Comment not found");
+        return new ResponseEntity<>(exceptionResponse,HttpStatus.NOT_FOUND);
+    }
+
 
     //the requested URL does not match any existing endpoint (controller method).
     @ExceptionHandler(NoResourceFoundException.class)
@@ -101,6 +127,20 @@ public class GlobalExceptionHandler {
         logger.error("Database integrity violation: {}", ex.getMessage());
         ApiResponse<String> exceptionResponse=ApiResponse.error(HttpStatus.CONFLICT.value(),"Database constraint violation occurred.","Please ensure data uniqueness and integrity.");
         return new ResponseEntity<>(exceptionResponse,HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(ExpiredJwtException.class)
+    public ResponseEntity<ApiResponse<String>> handleExpiredJwtException(ExpiredJwtException expiredJwtException){
+        logger.error("Token is expired {}",expiredJwtException.getLocalizedMessage());
+        ApiResponse<String> exceptionResponse=ApiResponse.error(HttpStatus.UNAUTHORIZED.value(),"Token expired","Token expired");
+        return new ResponseEntity<>(exceptionResponse,HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(SignatureException.class)
+    public ResponseEntity<ApiResponse<String>> handleSignatureException(SignatureException signatureException){
+        logger.error("Token signature not valid {}",signatureException.getLocalizedMessage());
+        ApiResponse<String> exceptionResponse=ApiResponse.error(HttpStatus.UNAUTHORIZED.value(),"Token signature not valid","Token signature not valid");
+        return new ResponseEntity<>(exceptionResponse,HttpStatus.UNAUTHORIZED);
     }
 
 }

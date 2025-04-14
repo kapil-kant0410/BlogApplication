@@ -26,11 +26,12 @@ public class User {
     @Column(nullable = false,unique = true)
     private String email;
 
+    @Column(nullable = false)
+    private Integer tokenVersion=0;
 
     @Column(nullable = false)
     @JsonIgnore
     private String password;
-
 
     @OneToMany(mappedBy = "user",cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference

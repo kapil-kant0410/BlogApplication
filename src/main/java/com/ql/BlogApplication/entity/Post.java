@@ -12,7 +12,7 @@ import java.util.List;
 
 
 @Entity
-@Table(name = "posts",uniqueConstraints = @UniqueConstraint(columnNames = {"title","content","author_id","category_id"}))
+@Table(name = "posts")
 @Getter
 @Setter
 @AllArgsConstructor
@@ -32,9 +32,8 @@ public class Post {
     @Column(nullable = false)
     private Boolean isPublished=false;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private  String imageURL;
-
 
     @ManyToOne
     @JsonBackReference

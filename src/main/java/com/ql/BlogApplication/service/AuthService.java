@@ -1,21 +1,27 @@
 package com.ql.BlogApplication.service;
 
-import com.ql.BlogApplication.config.JwtUtil;
+import com.ql.BlogApplication.constant.MessageCodes;
 import com.ql.BlogApplication.dto.ApiResponse;
 import com.ql.BlogApplication.dto.UserLoginRequestDto;
+import com.ql.BlogApplication.dto.UserOtpLoginRequestDto;
 import com.ql.BlogApplication.dto.UserRegisterRequestDto;
 import com.ql.BlogApplication.entity.Role;
 import com.ql.BlogApplication.entity.User;
 import com.ql.BlogApplication.entity.UserRole;
+import com.ql.BlogApplication.exception.RoleNotFoundException;
+import com.ql.BlogApplication.exception.UserNotFoundException;
+import com.ql.BlogApplication.interceptor.AuthorInterceptor;
 import com.ql.BlogApplication.repository.RoleRepository;
 import com.ql.BlogApplication.repository.UserRepository;
 import com.ql.BlogApplication.repository.UserRoleRepository;
+import com.ql.BlogApplication.util.JwtUtil;
+import com.ql.BlogApplication.util.TokenContext;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import java.util.Objects;
 
-import java.util.Optional;
 
 @Service
 public class AuthService {
@@ -23,15 +29,14 @@ public class AuthService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final UserRoleRepository userRoleRepository;
-    private final JwtUtil jwtUtils;
-    private final BCryptPasswordEncoder passwordEncoder;
 
-      AuthService(UserRepository userRepository, RoleRepository roleRepository, UserRoleRepository userRoleRepository, JwtUtil jwtUtils, BCryptPasswordEncoder passwordEncoder){
+    private final JwtUtil jwtUtil;
+
+      AuthService(UserRepository userRepository, RoleRepository roleRepository, UserRoleRepository userRoleRepository, JwtUtil jwtUtils){
               this.userRepository=userRepository;
               this.roleRepository=roleRepository;
               this.userRoleRepository=userRoleRepository;
-              this.jwtUtils=jwtUtils;
-              this.passwordEncoder=passwordEncoder;
+              this.jwtUtil=jwtUtils;
       }
 
       public ResponseEntity<ApiResponse<String>> registerUser(UserRegisterRequestDto userRequestDto){
@@ -41,20 +46,12 @@ public class AuthService {
             return new ResponseEntity<>(apiResponse, HttpStatus.CONFLICT);
         }
 
-        Optional<Role> optionalRole =roleRepository.findByName(userRequestDto.getRole());
+        Role role=roleRepository.findByName(userRequestDto.getRole()).orElseThrow(()->new RoleNotFoundException(MessageCodes.messages.get(107)));
 
-        if(optionalRole.isEmpty()){
-            return new ResponseEntity<>(ApiResponse.<String>error(
-                    HttpStatus.BAD_REQUEST.value(), "Invalid role name.", "Validation error."),
-                    HttpStatus.BAD_REQUEST);
-        }
-
-        Role role=optionalRole.get();
         User newUser = new User();
         newUser.setName(userRequestDto.getName());
         newUser.setEmail(userRequestDto.getEmail());
-        newUser.setPassword(passwordEncoder.encode(userRequestDto.getPassword()));
-        // newUser.setPassword(userRequestDto.getPassword());
+        newUser.setPassword(userRequestDto.getPassword());
         userRepository.save(newUser);
 
         UserRole userRole=new UserRole();
@@ -63,27 +60,47 @@ public class AuthService {
 
         userRoleRepository.save(userRole);
 
-        ApiResponse<String> apiResponse= ApiResponse.<String>success(HttpStatus.CREATED.value(), jwtUtils.generateToken(userRequestDto.getEmail()),"User registered successfully");
+        ApiResponse<String> apiResponse= ApiResponse.<String>success(HttpStatus.CREATED.value(), jwtUtil.generateToken(newUser.getId()),MessageCodes.messages.get(101));
         return new ResponseEntity<>(apiResponse,HttpStatus.CREATED);
     }
 
-      public ResponseEntity<ApiResponse<String>> login(UserLoginRequestDto authRequestDto){
+      public ResponseEntity<ApiResponse<String>> loginByPassword(UserLoginRequestDto authRequestDto){
 
-            Optional<User> user=userRepository.findByEmail(authRequestDto.getEmail());
+            User user=userRepository.findByEmail(authRequestDto.getEmail()).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(106)));
 
-            if(user.isEmpty()){
-                ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.NOT_FOUND.value(), "Invalid credentials","Invalid credentials");
-                return new ResponseEntity<>(apiResponse,HttpStatus.NOT_FOUND);
-            }
+             String dataBasePassword=user.getPassword();
+             String requestPassword=authRequestDto.getPassword();
 
-            if(!passwordEncoder.matches(authRequestDto.getPassword(),user.get().getPassword())){
-                ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.UNAUTHORIZED.value(), "Invalid credentials","Invalid credentials");
-                return new ResponseEntity<>(apiResponse,HttpStatus.UNAUTHORIZED);
-            }
+             if(!Objects.equals(dataBasePassword, requestPassword)){
+                 ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.UNAUTHORIZED.value(), "Password mismatched","password mismatched");
+                 return new ResponseEntity<>(apiResponse,HttpStatus.UNAUTHORIZED);
+             }
 
-            String token=jwtUtils.generateToken(authRequestDto.getEmail());
+            String token=jwtUtil.generateToken(user.getId());
 
-            ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(), token,"Successfully signed in.");
+            ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(), token,MessageCodes.messages.get(102));
             return new ResponseEntity<>(apiResponse,HttpStatus.OK);
+      }
+
+      public ResponseEntity<ApiResponse<String>> loginByOtp(UserOtpLoginRequestDto userOtpLoginRequestDto){
+
+
+
+          ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(), "Logged in successfully",MessageCodes.messages.get(102));
+          return new ResponseEntity<>(apiResponse,HttpStatus.OK);
+      }
+
+      public ResponseEntity<ApiResponse<String>> logout(){
+
+          String token= TokenContext.getToken();
+          Long id= Long.parseLong(jwtUtil.extractId(token));
+
+          User user=userRepository.findById(id).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(106)));
+
+          user.setTokenVersion(user.getTokenVersion()+1);
+          userRepository.save(user);
+
+          ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(),"User logged out successfully","User logged out successfully");
+          return new ResponseEntity<>(apiResponse,HttpStatus.OK);
       }
 }
