@@ -31,7 +31,7 @@ public class JwtUtil {
     private long EXPIRATION_TIME;
 
     public String generateToken(Long id) {
-        User user=userRepository.findById(id).orElseThrow(()-> new UserNotFoundException(MessageCodes.messages.get(106)));
+        User user=userRepository.findById(id).orElseThrow(()-> new UserNotFoundException(MessageCodes.messages.get(201)));
         return Jwts.builder()
                 .setSubject(id.toString())
                 .claim("tokenVersion",user.getTokenVersion())
@@ -46,7 +46,7 @@ public class JwtUtil {
             Jwts.parser().setSigningKey(SECRET_KEY).parseClaimsJws(token);
             Long id=Long.parseLong(extractId(token));
             logger.info("from inside validate token");
-            User user=userRepository.findById(id).orElseThrow(()-> new UserNotFoundException(MessageCodes.messages.get(106)));
+            User user=userRepository.findById(id).orElseThrow(()-> new UserNotFoundException(MessageCodes.messages.get(201)));
 
             Claims claims = Jwts.parser()
                     .setSigningKey(SECRET_KEY)

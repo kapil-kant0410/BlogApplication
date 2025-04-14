@@ -75,7 +75,7 @@ public class AuthService {
 
       public ResponseEntity<ApiResponse<String>> loginByPassword(UserLoginRequestDto authRequestDto){
 
-            User user=userRepository.findByEmail(authRequestDto.getEmail()).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(106)));
+            User user=userRepository.findByEmail(authRequestDto.getEmail()).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(201)));
 
              String dataBasePassword=user.getPassword();
              String requestPassword=authRequestDto.getPassword();
@@ -93,7 +93,7 @@ public class AuthService {
 
       public ResponseEntity<ApiResponse<String>> generateOtp(UserGenerateOtpLoginRequestDto userGenerateOtpLoginRequestDto){
 
-          userRepository.findByEmail(userGenerateOtpLoginRequestDto.getEmail()).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(106)));
+          userRepository.findByEmail(userGenerateOtpLoginRequestDto.getEmail()).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(201)));
 
           String otp=String.valueOf(new Random().nextInt(900000)+100000);
           otpStore.put(userGenerateOtpLoginRequestDto.getEmail(),otp);
@@ -112,7 +112,7 @@ public class AuthService {
 
       public ResponseEntity<ApiResponse<String>> validateOtp(UserValidateOtpLoginRequestDto userValidateOtpLoginRequestDto){
 
-          User user=userRepository.findByEmail(userValidateOtpLoginRequestDto.getEmail()).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(106)));
+          User user=userRepository.findByEmail(userValidateOtpLoginRequestDto.getEmail()).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(201)));
           String validOtp=otpStore.get(userValidateOtpLoginRequestDto.getEmail());
           Long expiryTime=otpExpiry.get(userValidateOtpLoginRequestDto.getEmail());
 
@@ -125,7 +125,7 @@ public class AuthService {
               String token=jwtUtil.generateToken(user.getId());
               otpStore.remove(userValidateOtpLoginRequestDto.getEmail());
               otpExpiry.remove(userValidateOtpLoginRequestDto.getEmail());
-              ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(), token,"Otp validate successfully");
+              ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(), token,MessageCodes.messages.get(102));
               return new ResponseEntity<>(apiResponse,HttpStatus.OK);
           }
 
@@ -138,12 +138,12 @@ public class AuthService {
           String token= TokenContext.getToken();
           Long id= Long.parseLong(jwtUtil.extractId(token));
 
-          User user=userRepository.findById(id).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(106)));
+          User user=userRepository.findById(id).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(201)));
 
           user.setTokenVersion(user.getTokenVersion()+1);
           userRepository.save(user);
 
-          ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(),"User logged out successfully","User logged out successfully");
+          ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(),MessageCodes.messages.get(106),MessageCodes.messages.get(106));
           return new ResponseEntity<>(apiResponse,HttpStatus.OK);
       }
 }

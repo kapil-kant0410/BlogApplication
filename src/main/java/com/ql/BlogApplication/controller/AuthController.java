@@ -24,17 +24,17 @@ public class AuthController {
        }
 
       @PostMapping("/login")
-      public ResponseEntity<ApiResponse<String>> loginByPassword(@RequestBody UserLoginRequestDto userLoginRequestDto) {
+      public ResponseEntity<ApiResponse<String>> loginByPassword(@Valid @RequestBody UserLoginRequestDto userLoginRequestDto) {
              return authService.loginByPassword(userLoginRequestDto);
       }
 
       @PostMapping("/generate-otp")
-      public ResponseEntity<ApiResponse<String>> generateOtp(@RequestBody UserGenerateOtpLoginRequestDto userGenerateOtpLoginRequestDto){
+      public ResponseEntity<ApiResponse<String>> generateOtp(@Valid @RequestBody UserGenerateOtpLoginRequestDto userGenerateOtpLoginRequestDto){
          return authService.generateOtp(userGenerateOtpLoginRequestDto);
       }
 
       @PostMapping("/validate-otp")
-      public ResponseEntity<ApiResponse<String>> validateOtp(@RequestBody UserValidateOtpLoginRequestDto userValidateOtpLoginRequestDto){
+      public ResponseEntity<ApiResponse<String>> validateOtp(@Valid @RequestBody UserValidateOtpLoginRequestDto userValidateOtpLoginRequestDto){
         return authService.validateOtp(userValidateOtpLoginRequestDto);
       }
 
