@@ -8,7 +8,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class UserValidateOtpLoginRequestDto {
+public class OtpValidationRequestDto {
     @Email(message = "Please pass valid email.")
     private String email;
 

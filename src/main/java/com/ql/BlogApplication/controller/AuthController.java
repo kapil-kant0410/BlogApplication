@@ -29,12 +29,12 @@ public class AuthController {
       }
 
       @PostMapping("/generate-otp")
-      public ResponseEntity<ApiResponse<String>> generateOtp(@Valid @RequestBody UserGenerateOtpLoginRequestDto userGenerateOtpLoginRequestDto){
-         return authService.generateOtp(userGenerateOtpLoginRequestDto);
+      public ResponseEntity<ApiResponse<String>> generateOtp(@Valid @RequestBody OtpGenerationRequestDto otpGenerationRequestDto){
+         return authService.generateOtp(otpGenerationRequestDto);
       }
 
       @PostMapping("/validate-otp")
-      public ResponseEntity<ApiResponse<String>> validateOtp(@Valid @RequestBody UserValidateOtpLoginRequestDto userValidateOtpLoginRequestDto){
+      public ResponseEntity<ApiResponse<String>> validateOtp(@Valid @RequestBody OtpValidationRequestDto userValidateOtpLoginRequestDto){
         return authService.validateOtp(userValidateOtpLoginRequestDto);
       }
 

@@ -14,6 +14,13 @@ public class WebConfig implements WebMvcConfigurer {
     final JwtAuthInterceptor jwtAuthInterceptor;
     final AuthorInterceptor authorInterceptor;
 
+    private final String[] WHITELIST={
+            "api/auth/login",
+            "api/auth/register",
+            "api/auth/generate-otp",
+            "api/auth/validate-otp"
+    };
+
     public WebConfig(JwtAuthInterceptor jwtAuthInterceptor,AuthorInterceptor authorInterceptor) {
         this.jwtAuthInterceptor = jwtAuthInterceptor;
         this.authorInterceptor=authorInterceptor;
@@ -23,11 +30,10 @@ public class WebConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry){
         registry.addInterceptor(jwtAuthInterceptor)
                 .addPathPatterns("/api/**")
-                .excludePathPatterns("/api/auth/login", "/api/auth/register","/api/auth/generate-otp","/api/auth/validate-otp");
+                .excludePathPatterns(WHITELIST);
 
         registry.addInterceptor(authorInterceptor)
                 .addPathPatterns("/api/post/create","/api/category/create","/api/category/delete/**");
-
     }
 
     @Override
