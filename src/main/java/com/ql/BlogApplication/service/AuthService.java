@@ -2,11 +2,13 @@ package com.ql.BlogApplication.service;
 
 import com.ql.BlogApplication.constant.MessageCodes;
 import com.ql.BlogApplication.dto.*;
+import com.ql.BlogApplication.entity.Otp;
 import com.ql.BlogApplication.entity.Role;
 import com.ql.BlogApplication.entity.User;
 import com.ql.BlogApplication.entity.UserRole;
 import com.ql.BlogApplication.exception.RoleNotFoundException;
 import com.ql.BlogApplication.exception.UserNotFoundException;
+import com.ql.BlogApplication.repository.OtpRepository;
 import com.ql.BlogApplication.repository.RoleRepository;
 import com.ql.BlogApplication.repository.UserRepository;
 import com.ql.BlogApplication.repository.UserRoleRepository;
@@ -21,10 +23,8 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.stereotype.Service;
 import org.springframework.mail.javamail.JavaMailSender;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Random;
+import java.time.LocalDateTime;
+import java.util.*;
 
 
 @Service
@@ -39,18 +39,18 @@ public class AuthService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final UserRoleRepository userRoleRepository;
+    private final OtpRepository otpRepository;
     private final JavaMailSender javaMailSender;
     private final JwtUtil jwtUtil;
     private final Random random=new Random();
-    private  Map<String,String> otpStore=new HashMap<>();
-    private  Map<String,Long> otpExpiry=new HashMap<>();
 
-      AuthService(UserRepository userRepository, RoleRepository roleRepository, UserRoleRepository userRoleRepository, JwtUtil jwtUtils,JavaMailSender javaMailSender){
+      AuthService(UserRepository userRepository, RoleRepository roleRepository, UserRoleRepository userRoleRepository, JwtUtil jwtUtils,JavaMailSender javaMailSender,OtpRepository otpRepository){
               this.userRepository=userRepository;
               this.roleRepository=roleRepository;
               this.userRoleRepository=userRoleRepository;
               this.jwtUtil=jwtUtils;
               this.javaMailSender=javaMailSender;
+              this.otpRepository=otpRepository;
       }
 
       public ResponseEntity<ApiResponse<String>> registerUser(UserRegisterRequestDto userRequestDto){
@@ -101,50 +101,55 @@ public class AuthService {
           userRepository.findByEmail(otpGenerationRequestDto.getEmail()).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(201)));
 
           String otp=String.valueOf(random.nextInt(900000)+100000);
-          otpStore.put(otpGenerationRequestDto.getEmail(),otp);
-          otpExpiry.put(otpGenerationRequestDto.getEmail(),System.currentTimeMillis()+(5*60*1000));
 
-          SimpleMailMessage simpleMailMessage=new SimpleMailMessage();
-          simpleMailMessage.setTo(otpGenerationRequestDto.getEmail());
-          simpleMailMessage.setSubject(otpSubject);
-          simpleMailMessage.setText("Your OTP is: " + otp+"\nIt will expire in 5 minutes.");
+           Otp otpEntity=new Otp();
+           otpEntity.setEmail(otpGenerationRequestDto.getEmail());
+           otpEntity.setOtp(otp);
+           otpEntity.setGeneratedAt(LocalDateTime.now());
+           otpEntity.setUsed(false);
 
-          javaMailSender.send(simpleMailMessage);
+           otpRepository.save(otpEntity);
 
-          ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(), "Otp send successfully","Otp send successfully");
-          return new ResponseEntity<>(apiResponse,HttpStatus.OK);
+           SimpleMailMessage simpleMailMessage=new SimpleMailMessage();
+           simpleMailMessage.setTo(otpGenerationRequestDto.getEmail());
+           simpleMailMessage.setSubject(otpSubject);
+           simpleMailMessage.setText("Your OTP is: " + otp+"\nIt will expire in 5 minutes.");
+
+           javaMailSender.send(simpleMailMessage);
+
+           ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(), "Otp send successfully","Otp send successfully");
+           return new ResponseEntity<>(apiResponse,HttpStatus.OK);
       }
 
       public ResponseEntity<ApiResponse<String>> validateOtp(OtpValidationRequestDto otpValidationRequestDto){
 
           User user=userRepository.findByEmail(otpValidationRequestDto.getEmail()).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(201)));
-          String validOtp=otpStore.get(otpValidationRequestDto.getEmail());
-          Long expiryTime=otpExpiry.get(otpValidationRequestDto.getEmail());
+          Optional<Otp> optionalOtp = otpRepository.findTopByEmailAndIsUsedFalseOrderByGeneratedAtDesc(otpValidationRequestDto.getEmail());
 
-          if (validOtp == null || expiryTime == null) {
-              ApiResponse<String> apiResponse = ApiResponse.error(
-                      HttpStatus.BAD_REQUEST.value(),
-                      "OTP not found or expired",
-                      "OTP not found or expired"
-              );
-              return new ResponseEntity<>(apiResponse, HttpStatus.BAD_REQUEST);
+          if(optionalOtp.isEmpty()){
+              ApiResponse<String> apiResponse=ApiResponse.error(HttpStatus.BAD_REQUEST.value(), "Invalid otp","Invalid otp");
+              return new ResponseEntity<>(apiResponse,HttpStatus.BAD_REQUEST);
           }
 
-          if(expiryTime<System.currentTimeMillis()){
+          Otp otp = optionalOtp.get();
+
+          if (otp.getGeneratedAt().isBefore(LocalDateTime.now().minusMinutes(5))) {
               ApiResponse<String> apiResponse=ApiResponse.error(HttpStatus.BAD_REQUEST.value(), "Otp expired","Otp expired");
               return new ResponseEntity<>(apiResponse,HttpStatus.BAD_REQUEST);
           }
 
-          if(validOtp.equals(otpValidationRequestDto.getOtp())){
-              String token=jwtUtil.generateToken(user.getId());
-              otpStore.remove(otpValidationRequestDto.getEmail());
-              otpExpiry.remove(otpValidationRequestDto.getEmail());
-              ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(), token,MessageCodes.messages.get(102));
-              return new ResponseEntity<>(apiResponse,HttpStatus.OK);
+          if (!otp.getOtp().equals(otpValidationRequestDto.getOtp())) {
+              ApiResponse<String> apiResponse=ApiResponse.error(HttpStatus.BAD_REQUEST.value(), "Invalid otp","Invalid otp");
+              return new ResponseEntity<>(apiResponse,HttpStatus.BAD_REQUEST);
           }
 
-          ApiResponse<String> apiResponse=ApiResponse.error(HttpStatus.BAD_REQUEST.value(), "Invalid otp","Invalid otp");
-          return new ResponseEntity<>(apiResponse,HttpStatus.BAD_REQUEST);
+          otp.setUsed(true);
+          otpRepository.save(otp);
+
+          String token=jwtUtil.generateToken(user.getId());
+
+          ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(), token,"Login successfully");
+          return new ResponseEntity<>(apiResponse,HttpStatus.OK);
       }
 
       public ResponseEntity<ApiResponse<String>> logout(){
