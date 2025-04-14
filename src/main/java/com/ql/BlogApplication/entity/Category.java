@@ -21,7 +21,7 @@ public class Category {
     @Column(nullable = false,unique = true,length = 50)
     private String name;
 
-    @OneToMany(mappedBy = "category", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OneToMany(mappedBy = "category")
     @JsonManagedReference
     private List<Post> posts;
 }

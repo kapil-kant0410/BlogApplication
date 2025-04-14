@@ -1,42 +1,51 @@
 package com.ql.BlogApplication.service;
 
 import com.ql.BlogApplication.constant.MessageCodes;
-import com.ql.BlogApplication.dto.ApiResponse;
-import com.ql.BlogApplication.dto.UserLoginRequestDto;
-import com.ql.BlogApplication.dto.UserOtpLoginRequestDto;
-import com.ql.BlogApplication.dto.UserRegisterRequestDto;
+import com.ql.BlogApplication.dto.*;
 import com.ql.BlogApplication.entity.Role;
 import com.ql.BlogApplication.entity.User;
 import com.ql.BlogApplication.entity.UserRole;
 import com.ql.BlogApplication.exception.RoleNotFoundException;
 import com.ql.BlogApplication.exception.UserNotFoundException;
-import com.ql.BlogApplication.interceptor.AuthorInterceptor;
 import com.ql.BlogApplication.repository.RoleRepository;
 import com.ql.BlogApplication.repository.UserRepository;
 import com.ql.BlogApplication.repository.UserRoleRepository;
 import com.ql.BlogApplication.util.JwtUtil;
 import com.ql.BlogApplication.util.TokenContext;
-import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.SimpleMailMessage;
 import org.springframework.stereotype.Service;
+import org.springframework.mail.javamail.JavaMailSender;
+
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Random;
 
 
 @Service
 public class AuthService {
 
+    Logger logger= LoggerFactory.getLogger(AuthService.class);
+
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final UserRoleRepository userRoleRepository;
-
+    private final JavaMailSender javaMailSender;
     private final JwtUtil jwtUtil;
 
-      AuthService(UserRepository userRepository, RoleRepository roleRepository, UserRoleRepository userRoleRepository, JwtUtil jwtUtils){
+    private  Map<String,String> otpStore=new HashMap<>();
+    private  Map<String,Long> otpExpiry=new HashMap<>();
+
+      AuthService(UserRepository userRepository, RoleRepository roleRepository, UserRoleRepository userRoleRepository, JwtUtil jwtUtils,JavaMailSender javaMailSender){
               this.userRepository=userRepository;
               this.roleRepository=roleRepository;
               this.userRoleRepository=userRoleRepository;
               this.jwtUtil=jwtUtils;
+              this.javaMailSender=javaMailSender;
       }
 
       public ResponseEntity<ApiResponse<String>> registerUser(UserRegisterRequestDto userRequestDto){
@@ -82,12 +91,46 @@ public class AuthService {
             return new ResponseEntity<>(apiResponse,HttpStatus.OK);
       }
 
-      public ResponseEntity<ApiResponse<String>> loginByOtp(UserOtpLoginRequestDto userOtpLoginRequestDto){
+      public ResponseEntity<ApiResponse<String>> generateOtp(UserGenerateOtpLoginRequestDto userGenerateOtpLoginRequestDto){
 
+          userRepository.findByEmail(userGenerateOtpLoginRequestDto.getEmail()).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(106)));
 
+          String otp=String.valueOf(new Random().nextInt(900000)+100000);
+          otpStore.put(userGenerateOtpLoginRequestDto.getEmail(),otp);
+          otpExpiry.put(userGenerateOtpLoginRequestDto.getEmail(),System.currentTimeMillis()+(5*60*1000));
 
-          ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(), "Logged in successfully",MessageCodes.messages.get(102));
+          SimpleMailMessage simpleMailMessage=new SimpleMailMessage();
+          simpleMailMessage.setTo(userGenerateOtpLoginRequestDto.getEmail());
+          simpleMailMessage.setSubject("Your OTP Code");
+          simpleMailMessage.setText("Your OTP is: " + otp+"\nIt will expire in 5 minutes.");
+
+          javaMailSender.send(simpleMailMessage);
+
+          ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(), "Otp send successfully","Otp send successfully");
           return new ResponseEntity<>(apiResponse,HttpStatus.OK);
+      }
+
+      public ResponseEntity<ApiResponse<String>> validateOtp(UserValidateOtpLoginRequestDto userValidateOtpLoginRequestDto){
+
+          User user=userRepository.findByEmail(userValidateOtpLoginRequestDto.getEmail()).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(106)));
+          String validOtp=otpStore.get(userValidateOtpLoginRequestDto.getEmail());
+          Long expiryTime=otpExpiry.get(userValidateOtpLoginRequestDto.getEmail());
+
+          if(expiryTime<System.currentTimeMillis()){
+              ApiResponse<String> apiResponse=ApiResponse.error(HttpStatus.BAD_REQUEST.value(), "Otp expired","Otp expired");
+              return new ResponseEntity<>(apiResponse,HttpStatus.BAD_REQUEST);
+          }
+
+          if(validOtp!=null  && validOtp.equals(userValidateOtpLoginRequestDto.getOtp())){
+              String token=jwtUtil.generateToken(user.getId());
+              otpStore.remove(userValidateOtpLoginRequestDto.getEmail());
+              otpExpiry.remove(userValidateOtpLoginRequestDto.getEmail());
+              ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(), token,"Otp validate successfully");
+              return new ResponseEntity<>(apiResponse,HttpStatus.OK);
+          }
+
+          ApiResponse<String> apiResponse=ApiResponse.error(HttpStatus.BAD_REQUEST.value(), "Invalid otp","Invalid otp");
+          return new ResponseEntity<>(apiResponse,HttpStatus.BAD_REQUEST);
       }
 
       public ResponseEntity<ApiResponse<String>> logout(){
