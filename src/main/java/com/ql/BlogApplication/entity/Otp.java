@@ -27,6 +27,4 @@ public class Otp {
 
     private LocalDateTime generatedAt;
 
-    private boolean isUsed;
-
 }

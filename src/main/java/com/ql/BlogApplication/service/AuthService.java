@@ -35,7 +35,6 @@ public class AuthService {
     @Value("${mail.otp.subject}")
     private String otpSubject;
 
-
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final UserRoleRepository userRoleRepository;
@@ -106,7 +105,6 @@ public class AuthService {
            otpEntity.setEmail(otpGenerationRequestDto.getEmail());
            otpEntity.setOtp(otp);
            otpEntity.setGeneratedAt(LocalDateTime.now());
-           otpEntity.setUsed(false);
 
            otpRepository.save(otpEntity);
 
@@ -124,7 +122,7 @@ public class AuthService {
       public ResponseEntity<ApiResponse<String>> validateOtp(OtpValidationRequestDto otpValidationRequestDto){
 
           User user=userRepository.findByEmail(otpValidationRequestDto.getEmail()).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(201)));
-          Optional<Otp> optionalOtp = otpRepository.findTopByEmailAndIsUsedFalseOrderByGeneratedAtDesc(otpValidationRequestDto.getEmail());
+          Optional<Otp> optionalOtp = otpRepository.findTopByEmailOrderByGeneratedAtDesc(otpValidationRequestDto.getEmail());
 
           if(optionalOtp.isEmpty()){
               ApiResponse<String> apiResponse=ApiResponse.error(HttpStatus.BAD_REQUEST.value(), "Invalid otp","Invalid otp");
@@ -143,8 +141,7 @@ public class AuthService {
               return new ResponseEntity<>(apiResponse,HttpStatus.BAD_REQUEST);
           }
 
-          otp.setUsed(true);
-          otpRepository.save(otp);
+          otpRepository.delete(otp);
 
           String token=jwtUtil.generateToken(user.getId());
 
