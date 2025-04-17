@@ -42,7 +42,7 @@ public class UserController {
 
      @PutMapping("/update")
      public ResponseEntity<ApiResponse<String>> updateUserByID(@Valid @RequestBody UserUpdateRequestDto userUpdateRequestDto){
-         logger.info("Updating user with  Email: {} | Name: {}",  userUpdateRequestDto.getEmail(), userUpdateRequestDto.getName());
+         logger.info("Updating user with Name: {}", userUpdateRequestDto.getName());
          return userService.updateUserByID(userUpdateRequestDto);
      }
 

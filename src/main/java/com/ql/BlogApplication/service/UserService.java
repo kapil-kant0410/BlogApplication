@@ -70,25 +70,20 @@ public class UserService {
                 isUpdated=true;
             }
 
-           if(!Objects.equals(userToUpdate.getEmail(), userUpdateRequestDto.getEmail())){
-               userToUpdate.setEmail(userUpdateRequestDto.getEmail());
-              isUpdated=true;
-           }
-
-          if(!Objects.equals(userToUpdate.getPassword(), userUpdateRequestDto.getPassword())){
+            if(!Objects.equals(userToUpdate.getPassword(), userUpdateRequestDto.getPassword())){
               userToUpdate.setPassword(userUpdateRequestDto.getPassword());
               isUpdated=true;
-          }
+            }
 
-          if(!isUpdated){
+            if(!isUpdated){
               ApiResponse<String> apiResponse= ApiResponse.<String>success(HttpStatus.OK.value(), "No changes made","No changes made");
               return new ResponseEntity<>(apiResponse,HttpStatus.OK);
-          }
+            }
 
-          userRepository.save(userToUpdate);
+            userRepository.save(userToUpdate);
 
-          ApiResponse<String> apiResponse= ApiResponse.<String>success(HttpStatus.OK.value(), MessageCodes.messages.get(103),MessageCodes.messages.get(103));
-          return new ResponseEntity<>(apiResponse,HttpStatus.OK);
+           ApiResponse<String> apiResponse= ApiResponse.<String>success(HttpStatus.OK.value(), MessageCodes.messages.get(103),MessageCodes.messages.get(103));
+           return new ResponseEntity<>(apiResponse,HttpStatus.OK);
       }
 
       //Working properly

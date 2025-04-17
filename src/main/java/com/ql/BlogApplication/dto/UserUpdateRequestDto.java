@@ -20,9 +20,6 @@ public class UserUpdateRequestDto {
     @Pattern(regexp = "^[A-Za-z]+([\\s][A-Za-z]+)*$", message = "Name must contain only alphabets and spaces with no trailing and leading space only one space between words")
     private String name;
 
-    @Email(message = "Invalid email field")
-    private String email;
-
     @NotBlank(message = "Password field must not be empty")
     @Pattern(regexp = "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$",
             message = "Password must be at least 8 characters long and include uppercase, lowercase, number, and special character")
