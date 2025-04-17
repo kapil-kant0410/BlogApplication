@@ -1,5 +1,6 @@
 package com.ql.BlogApplication.service;
 
+import com.ql.BlogApplication.constant.MessageCodes;
 import com.ql.BlogApplication.dto.ApiResponse;
 import com.ql.BlogApplication.dto.AuthorSubscriptionRequestDto;
 import com.ql.BlogApplication.dto.UserSubscribedAuthorResponseDto;
@@ -8,6 +9,8 @@ import com.ql.BlogApplication.entity.AuthorSubscription;
 import com.ql.BlogApplication.entity.User;
 import com.ql.BlogApplication.entity.UserRole;
 import com.ql.BlogApplication.exception.UserNotFoundException;
+import com.ql.BlogApplication.mapper.SubscriberMapper;
+import com.ql.BlogApplication.mapper.SubscriptionsMapper;
 import com.ql.BlogApplication.repository.AuthorSubscriptionRepository;
 import com.ql.BlogApplication.repository.UserRepository;
 import com.ql.BlogApplication.util.JwtUtil;
@@ -16,7 +19,6 @@ import jakarta.transaction.Transactional;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-
 
 
 import java.util.*;
@@ -40,8 +42,8 @@ public class AuthorSubscriptionService {
         String token= TokenContext.getToken();
         Long id= Long.parseLong(jwtUtil.extractId(token));
 
-        User user=userRepository.findById(id).orElseThrow(()->new UserNotFoundException("User not found"));
-        User author=userRepository.findById(authorSubscriptionRequestDto.getAuthorId()).orElseThrow(()->new UserNotFoundException("User not found"));
+        User user=userRepository.findById(id).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(201)));
+        User author=userRepository.findById(authorSubscriptionRequestDto.getAuthorId()).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(201)));
 
 
         if(Objects.equals(user.getId(), author.getId())){
@@ -71,7 +73,7 @@ public class AuthorSubscriptionService {
 
         authorSubscriptionRepository.save(authorSubscription);
 
-        ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(), "Successfully subscribed to author","Successfully subscribed to author");
+        ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(), MessageCodes.messages.get(161),MessageCodes.messages.get(161));
         return new ResponseEntity<>(apiResponse,HttpStatus.OK);
     }
 
@@ -82,7 +84,7 @@ public class AuthorSubscriptionService {
         String token= TokenContext.getToken();
         Long userId= Long.parseLong(jwtUtil.extractId(token));
 
-        userRepository.findById(authorSubscriptionRequestDto.getAuthorId()).orElseThrow(()->new UserNotFoundException("Author not found"));
+        userRepository.findById(authorSubscriptionRequestDto.getAuthorId()).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(201)));
 
         Optional<AuthorSubscription> optionalAuthorSubscription=authorSubscriptionRepository.findByUserIdAndAuthorId(userId, authorSubscriptionRequestDto.getAuthorId());
 
@@ -93,7 +95,7 @@ public class AuthorSubscriptionService {
 
         authorSubscriptionRepository.delete(optionalAuthorSubscription.get());
 
-        ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(), "Successfully unsubscribe from author","Successfully unsubscribe");
+        ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(), MessageCodes.messages.get(162),MessageCodes.messages.get(162));
         return new ResponseEntity<>(apiResponse,HttpStatus.OK);
     }
 
@@ -103,35 +105,22 @@ public class AuthorSubscriptionService {
         String token= TokenContext.getToken();
         Long id= Long.parseLong(jwtUtil.extractId(token));
 
-        User user=userRepository.findById(id).orElseThrow(()->new UserNotFoundException("User not found"));
+        User user=userRepository.findById(id).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(201)));
 
         Set<AuthorSubscription> subscribedAuthors=user.getSubscribedAuthors();
 
-        List<UserSubscribedAuthorResponseDto> authorSubscriptionResponseDtoList= subscribedAuthors.stream().map(authorSubscription -> {
-           User author=authorSubscription.getAuthor();
-           return UserSubscribedAuthorResponseDto.builder()
-                   .authorId(author.getId())
-                   .name(author.getName())
-                   .email(author.getEmail())
-                   .build();
-           }).toList();
+        List<UserSubscribedAuthorResponseDto> authorSubscriptionResponseDtoList= SubscriptionsMapper.toDtoList(subscribedAuthors);
 
-
-        ApiResponse<List<UserSubscribedAuthorResponseDto>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),authorSubscriptionResponseDtoList,"Successfully found all authors");
+        ApiResponse<List<UserSubscribedAuthorResponseDto>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),authorSubscriptionResponseDtoList,MessageCodes.messages.get(163));
         return new ResponseEntity<>(apiResponse,HttpStatus.OK);
     }
 
     //working properly getting author subscribers
     public ResponseEntity<ApiResponse<List<AuthorSubscribersResponseDto>>> getAuthorSubscribers(Long id){
 
-        Optional<User> optionalUser=userRepository.findById(id);
+        User user=userRepository.findById(id).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(201)));
 
-        if(optionalUser.isEmpty()){
-            ApiResponse<List<AuthorSubscribersResponseDto>> apiResponse=ApiResponse.error(HttpStatus.NOT_FOUND.value(), Collections.emptyList(),"User not found");
-            return new ResponseEntity<>(apiResponse,HttpStatus.NOT_FOUND);
-        }
-
-        boolean isAuthor = optionalUser.get().getUserRoles().stream()
+        boolean isAuthor = user.getUserRoles().stream()
                 .anyMatch(userRole -> "author".equalsIgnoreCase(userRole.getRole().getName()));
 
         if(!isAuthor){
@@ -139,32 +128,19 @@ public class AuthorSubscriptionService {
             return new ResponseEntity<>(apiResponse,HttpStatus.BAD_REQUEST);
         }
 
-        Set<AuthorSubscription> authorSubscribers= optionalUser.get().getSubscribers();
+        Set<AuthorSubscription> authorSubscribers= user.getSubscribers();
+        List<AuthorSubscribersResponseDto> authorSubscribersList= SubscriberMapper.toDtoList(authorSubscribers);
 
-       List<AuthorSubscribersResponseDto> authorSubscribersList= authorSubscribers.stream().map(subscriber->{
-            User user=subscriber.getUser();
-           return AuthorSubscribersResponseDto.builder()
-                    .userId(user.getId())
-                    .name(user.getName())
-                    .email(user.getEmail())
-                    .build();
-        }).toList();
-
-        ApiResponse<List<AuthorSubscribersResponseDto>> apiResponse=ApiResponse.success(HttpStatus.OK.value(), authorSubscribersList,"All subscribers list");
+        ApiResponse<List<AuthorSubscribersResponseDto>> apiResponse=ApiResponse.success(HttpStatus.OK.value(), authorSubscribersList,MessageCodes.messages.get(164));
         return new ResponseEntity<>(apiResponse,HttpStatus.OK);
     }
 
     //working properly return count of subscribed users for an author
     public ResponseEntity<ApiResponse<Integer>> getSubscribersCount(Long id){
 
-        Optional<User> optionalUser=userRepository.findById(id);
+        User user=userRepository.findById(id).orElseThrow(()-> new UserNotFoundException(MessageCodes.messages.get(201)));
 
-        if(optionalUser.isEmpty()){
-            ApiResponse<Integer> apiResponse=ApiResponse.error(HttpStatus.NOT_FOUND.value(), 0,"User not found");
-            return new ResponseEntity<>(apiResponse,HttpStatus.NOT_FOUND);
-        }
-
-        boolean isAuthor = optionalUser.get().getUserRoles().stream()
+        boolean isAuthor = user.getUserRoles().stream()
                 .anyMatch(userRole -> "author".equalsIgnoreCase(userRole.getRole().getName()));
 
         if(!isAuthor){
@@ -172,9 +148,9 @@ public class AuthorSubscriptionService {
             return new ResponseEntity<>(apiResponse,HttpStatus.BAD_REQUEST);
         }
 
-        Set<AuthorSubscription> authorSubscribers= optionalUser.get().getSubscribers();
+        Set<AuthorSubscription> authorSubscribers= user.getSubscribers();
 
-        ApiResponse<Integer> apiResponse=ApiResponse.success(HttpStatus.OK.value(), authorSubscribers.size(),"Successfully fetched count");
+        ApiResponse<Integer> apiResponse=ApiResponse.success(HttpStatus.OK.value(), authorSubscribers.size(),"All subscribers count");
         return new ResponseEntity<>(apiResponse,HttpStatus.OK);
     }
 

@@ -1,5 +1,6 @@
 package com.ql.BlogApplication.exception;
 
+import com.ql.BlogApplication.constant.MessageCodes;
 import com.ql.BlogApplication.dto.ApiResponse;
 import io.jsonwebtoken.ExpiredJwtException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -37,7 +38,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(UserNotFoundException.class)
     public ResponseEntity<ApiResponse<String>> handleUserNotFoundException(UserNotFoundException ex){
         logger.warn("User not found: {}", ex.getMessage());
-        ApiResponse<String> exceptionResponse=ApiResponse.error(HttpStatus.NOT_FOUND.value(), ex.getMessage(),"User not found");
+        ApiResponse<String> exceptionResponse=ApiResponse.error(HttpStatus.NOT_FOUND.value(), ex.getMessage(),MessageCodes.messages.get(201));
         return new ResponseEntity<>(exceptionResponse, HttpStatus.NOT_FOUND);
     }
 
@@ -51,7 +52,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RoleNotFoundException.class)
     public ResponseEntity<ApiResponse<String>> handleRoleNotFoundException(RoleNotFoundException ex){
         logger.warn("Role not found: {}", ex.getMessage());
-        ApiResponse<String> exceptionResponse=ApiResponse.error(HttpStatus.NOT_FOUND.value(), ex.getMessage(),"Role not found");
+        ApiResponse<String> exceptionResponse=ApiResponse.error(HttpStatus.NOT_FOUND.value(), ex.getMessage(),MessageCodes.messages.get(211));
         return new ResponseEntity<>(exceptionResponse, HttpStatus.NOT_FOUND);
     }
 
@@ -59,17 +60,23 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(PostNotFoundException.class)
     public ResponseEntity<ApiResponse<String>> handlePostNotFoundException(PostNotFoundException ex){
            logger.warn("Post not found: {}", ex.getMessage());
-           ApiResponse<String> exceptionResponse=ApiResponse.error(HttpStatus.NOT_FOUND.value(), ex.getMessage(),"Post not found");
+           ApiResponse<String> exceptionResponse=ApiResponse.error(HttpStatus.NOT_FOUND.value(), ex.getMessage(),MessageCodes.messages.get(221));
            return new ResponseEntity<>(exceptionResponse,HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(CommentNotFoundException.class)
     public ResponseEntity<ApiResponse<String>> handleCommentNotFoundException(CommentNotFoundException ex){
         logger.warn("Comment not found: {}", ex.getMessage());
-        ApiResponse<String> exceptionResponse=ApiResponse.error(HttpStatus.NOT_FOUND.value(), ex.getMessage(),"Comment not found");
+        ApiResponse<String> exceptionResponse=ApiResponse.error(HttpStatus.NOT_FOUND.value(), ex.getMessage(),MessageCodes.messages.get(241));
         return new ResponseEntity<>(exceptionResponse,HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(CategoryNotFoundException.class)
+    public  ResponseEntity<ApiResponse<String>> handleCategoryNotFoundException(CategoryNotFoundException categoryNotFound){
+        logger.warn("category not found: {}", categoryNotFound.getMessage());
+        ApiResponse<String> apiResponse=ApiResponse.error(HttpStatus.NOT_FOUND.value(), MessageCodes.messages.get(231),MessageCodes.messages.get(231));
+        return new ResponseEntity<>(apiResponse,HttpStatus.NOT_FOUND);
+    }
 
     //the requested URL does not match any existing endpoint (controller method).
     @ExceptionHandler(NoResourceFoundException.class)

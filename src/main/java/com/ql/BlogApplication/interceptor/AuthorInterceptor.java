@@ -39,7 +39,7 @@ public class AuthorInterceptor implements HandlerInterceptor {
             String token=authHeader.substring(7);
             if(jwtUtil.validateToken((token))){
                 Long id= Long.parseLong(jwtUtil.extractId(token));
-                User user=userRepository.findById(id).orElseThrow(()-> new UserNotFoundException(MessageCodes.messages.get(106)));
+                User user=userRepository.findById(id).orElseThrow(()-> new UserNotFoundException(MessageCodes.messages.get(201)));
 
                 Boolean isAuthor= user.getUserRoles().stream().map(userRole -> {
                            return userRole.getRole().getName();

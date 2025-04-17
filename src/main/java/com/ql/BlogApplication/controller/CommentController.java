@@ -2,6 +2,7 @@ package com.ql.BlogApplication.controller;
 
 import com.ql.BlogApplication.dto.ApiResponse;
 import com.ql.BlogApplication.dto.CommentRequestDto;
+import com.ql.BlogApplication.dto.CommentUpdateRequestDto;
 import com.ql.BlogApplication.service.CommentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,8 +22,8 @@ public class CommentController {
     }
 
     @PutMapping("/update/{id}")
-    ResponseEntity<ApiResponse<String>> updateComment(@PathVariable Long id, @Valid @RequestBody CommentRequestDto commentRequestDto){
-        return commentService.updateComment(id,commentRequestDto);
+    ResponseEntity<ApiResponse<String>> updateComment(@PathVariable Long id, @Valid @RequestBody CommentUpdateRequestDto commentUpdateRequestDto){
+        return commentService.updateComment(id,commentUpdateRequestDto);
     }
 
     @DeleteMapping("/delete/{id}")

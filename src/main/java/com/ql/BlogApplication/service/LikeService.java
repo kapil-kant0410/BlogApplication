@@ -1,9 +1,11 @@
 package com.ql.BlogApplication.service;
+import com.ql.BlogApplication.constant.MessageCodes;
 import com.ql.BlogApplication.dto.ApiResponse;
 import com.ql.BlogApplication.dto.CommentLikeRequestDto;
 import com.ql.BlogApplication.dto.PostLikeRequestDto;
 import com.ql.BlogApplication.entity.Comment;
 import com.ql.BlogApplication.entity.Like;
+import com.ql.BlogApplication.exception.CommentNotFoundException;
 import com.ql.BlogApplication.exception.PostNotFoundException;
 import com.ql.BlogApplication.exception.UserNotFoundException;
 import com.ql.BlogApplication.interceptor.AuthorInterceptor;
@@ -49,14 +51,14 @@ public class LikeService {
         String token= TokenContext.getToken();
         Long id= Long.parseLong(jwtUtil.extractId(token));
 
-        User user=userRepository.findById(id).orElseThrow(()->new UserNotFoundException("User not found"));
-        Post post=postRepository.findById(postLikeRequestDto.getPostId()).orElseThrow(()->new PostNotFoundException("Post not found"));
+        User user=userRepository.findById(id).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(201)));
+        Post post=postRepository.findById(postLikeRequestDto.getPostId()).orElseThrow(()->new PostNotFoundException(MessageCodes.messages.get(221)));
 
         Optional<Like> optionalLike=likeRepository.findByUserIdAndPostId(id, postLikeRequestDto.getPostId());
 
         if(optionalLike.isPresent()){
             likeRepository.delete(optionalLike.get());
-            ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(), "Unliked the post","Successfully removed like");
+            ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(), MessageCodes.messages.get(152),MessageCodes.messages.get(152));
             return new ResponseEntity<>(apiResponse,HttpStatus.OK);
         }
 
@@ -66,7 +68,7 @@ public class LikeService {
 
         likeRepository.save(likeAPost);
 
-        ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(), "Successfully like the post","Successfully like the post");
+        ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(), MessageCodes.messages.get(151),MessageCodes.messages.get(151));
         return new ResponseEntity<>(apiResponse,HttpStatus.OK);
     }
 
@@ -76,31 +78,25 @@ public class LikeService {
         String token=TokenContext.getToken();
         Long id= Long.parseLong(jwtUtil.extractId(token));
 
-        User user=userRepository.findById(id).orElseThrow(()->new UserNotFoundException("User not found"));
-        Optional<Comment> optionalComment=commentRepository.findById(commentLikeRequestDto.getCommentId());
-
-        if(optionalComment.isEmpty()){
-            ApiResponse<String> apiResponse=ApiResponse.error(HttpStatus.NOT_FOUND.value(), "No comment found","No comment found");
-            return new ResponseEntity<>(apiResponse,HttpStatus.NOT_FOUND);
-        }
+        User user=userRepository.findById(id).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(201)));
+        Comment comment=commentRepository.findById(commentLikeRequestDto.getCommentId()).orElseThrow(()-> new CommentNotFoundException(MessageCodes.messages.get(241)));
 
         Optional<Like> optionalLike=likeRepository.findByUserIdAndCommentId(id, commentLikeRequestDto.getCommentId());
 
         if(optionalLike.isPresent()){
             likeRepository.delete(optionalLike.get());
-            ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(), "Unliked the comment","Successfully removed like");
+            ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(), MessageCodes.messages.get(152),MessageCodes.messages.get(152));
             return new ResponseEntity<>(apiResponse,HttpStatus.OK);
         }
 
         Like like=new Like();
         like.setUser(user);
-        like.setComment(optionalComment.get());
+        like.setComment(comment);
 
         likeRepository.save(like);
 
-        ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(), "Successfully like the comment","Successfully like the comment");
+        ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(), MessageCodes.messages.get(154),MessageCodes.messages.get(154));
         return new ResponseEntity<>(apiResponse,HttpStatus.OK);
     }
-
 
 }

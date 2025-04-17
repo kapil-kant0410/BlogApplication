@@ -48,7 +48,7 @@ public class UserService {
 
       //Working properly
       public ResponseEntity<ApiResponse<UserResponseDto>> getUserById(Long id){
-          User user=userRepository.findById(id).orElseThrow(()-> new UserNotFoundException(MessageCodes.messages.get(106)));
+          User user=userRepository.findById(id).orElseThrow(()-> new UserNotFoundException(MessageCodes.messages.get(201)));
           UserResponseDto userResponseDto=UserMapper.toDto(user);
           ApiResponse<UserResponseDto> apiResponse= ApiResponse.<UserResponseDto>success(HttpStatus.OK.value(), userResponseDto,MessageCodes.messages.get(105));
           return new ResponseEntity<>(apiResponse,HttpStatus.OK);
@@ -61,7 +61,7 @@ public class UserService {
             String token= TokenContext.getToken();
             Long id= Long.parseLong(jwtUtil.extractId(token));
 
-            User userToUpdate=userRepository.findById(id).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(106)));
+            User userToUpdate=userRepository.findById(id).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(201)));
 
             boolean isUpdated=false;
 
@@ -99,7 +99,7 @@ public class UserService {
 
         boolean isUserExists=userRepository.existsById(id);
         if(!isUserExists){
-            throw new UserNotFoundException(MessageCodes.messages.get(106));
+            throw new UserNotFoundException(MessageCodes.messages.get(201));
         }
         userRepository.deleteById(id);
         ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(),MessageCodes.messages.get(104),MessageCodes.messages.get(104));
@@ -112,8 +112,8 @@ public class UserService {
           String token= TokenContext.getToken();
           Long id= Long.parseLong(jwtUtil.extractId(token));
 
-          User user=userRepository.findById(id).orElseThrow(()-> new UserNotFoundException(MessageCodes.messages.get(106)));
-          Role role=roleRepository.findByName(roleRequestDto.getRole()).orElseThrow(()->new RoleNotFoundException(MessageCodes.messages.get(107)));
+          User user=userRepository.findById(id).orElseThrow(()-> new UserNotFoundException(MessageCodes.messages.get(201)));
+          Role role=roleRepository.findByName(roleRequestDto.getRole()).orElseThrow(()->new RoleNotFoundException(MessageCodes.messages.get(211)));
 
           Optional<UserRole> optionalUserRole=userRoleRepository.findByUserIdAndRoleId(id,role.getId());
 
@@ -127,7 +127,7 @@ public class UserService {
           userRole.setUser(user);
           userRoleRepository.save(userRole);
 
-          ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(),MessageCodes.messages.get(108),MessageCodes.messages.get(108));
+          ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(),MessageCodes.messages.get(111),MessageCodes.messages.get(111));
           return new ResponseEntity<>(apiResponse,HttpStatus.OK);
       }
 
