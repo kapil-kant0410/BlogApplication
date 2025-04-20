@@ -11,26 +11,26 @@ import java.util.List;
 @Component
 public class PostMapper {
 
-    public static List<CommentResponseDto> addComments(Post post){
-                return post.getComments().stream().map(CommentMapper::toDto).toList();
-    }
-
-    public static List<PostResponseDto> toDtoList(List<Post> allPosts){
-          return  allPosts.stream().map(post -> {
-                return  PostResponseDto.builder()
-                      .title(post.getTitle())
-                      .content(post.getContent())
-                        .commentList(addComments(post))
-                      .build();
-          }).toList();
-    }
-
-    public static  PostResponseDto toDto(Post post){
-        return  PostResponseDto.builder()
-                .title(post.getTitle())
-                .content(post.getContent())
-                .commentList(addComments(post))
-                .build();
-    }
+//    public static List<CommentResponseDto> addComments(Post post){
+//                return post.getComments().stream().map(CommentMapper::toDto).toList();
+//    }
+//
+//    public static List<PostResponseDto> toDtoList(List<Post> allPosts){
+//          return  allPosts.stream().map(post -> {
+//                return  PostResponseDto.builder()
+//                      .title(post.getTitle())
+//                      .content(post.getContent())
+//                        .commentList(addComments(post))
+//                      .build();
+//          }).toList();
+//    }
+//
+//    public static  PostResponseDto toDto(Post post){
+//        return  PostResponseDto.builder()
+//                .title(post.getTitle())
+//                .content(post.getContent())
+//                .commentList(addComments(post))
+//                .build();
+//    }
 
 }

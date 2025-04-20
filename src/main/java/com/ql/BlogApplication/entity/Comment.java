@@ -1,39 +1,30 @@
 package com.ql.BlogApplication.entity;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
-import jakarta.persistence.*;
 import lombok.*;
-
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+import java.util.HashSet;
 import java.util.Set;
 
-@Entity
-@Table(name="comments")
+@Document(collection = "comments")
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
 @Getter
 @Setter
-
 public class Comment {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
 
-    @Column(nullable = false,length = 500)
+    @Id
+    private String id;
+
     private String content;
 
-    @ManyToOne()
-    @JoinColumn(name="user_id",nullable = false)
-    @JsonBackReference
-    private User user;
+    // Store userId instead of a User object
+    private String userId;
 
-    @ManyToOne()
-    @JoinColumn(name = "post_id",nullable = false)
-    @JsonBackReference
-    private Post post;
+    // Store postId instead of a Post object
+    private String postId;
 
-    @OneToMany(mappedBy = "comment", cascade = CascadeType.ALL,orphanRemoval = true)
-    @JsonManagedReference
-    Set<Like> likes;
+    // List of like IDs for this comment
+    private Set<String> likeIds = new HashSet<>();
 }

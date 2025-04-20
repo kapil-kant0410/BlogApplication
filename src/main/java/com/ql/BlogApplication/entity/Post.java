@@ -1,55 +1,39 @@
 package com.ql.BlogApplication.entity;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
-import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+import java.util.HashSet;
+import java.util.Set;
 
-import java.util.List;
-
-
-@Entity
-@Table(name = "posts")
 @Getter
 @Setter
-@AllArgsConstructor
 @NoArgsConstructor
-
+@AllArgsConstructor
+@Document(collection = "posts")
 public class Post {
-    @Id
-    @GeneratedValue(strategy= GenerationType.IDENTITY)
-    private Long id;
 
-    @Column(nullable = false)
+    @Id
+    private String id;
+
     private String title;
 
-    @Column(nullable = false)
     private String content;
 
-    @Column(nullable = false)
-    private Boolean isPublished=false;
+    private Boolean isPublished = false;
 
-    @Column(nullable = true)
-    private  String imageURL;
+    private String imageURL;
 
-    @ManyToOne
-    @JsonBackReference
-    @JoinColumn(name = "author_id",nullable = false)
-    private User author;
+    // Reference to User (Author)
+    private String authorId;
 
-    @ManyToOne
-    @JoinColumn(name="category_id",nullable = false)
-    @JsonBackReference
-    private Category category;
+    // Reference to Category
+    private String categoryId;
 
-    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL,orphanRemoval = true)
-    @JsonManagedReference
-    private List<Comment> comments;
+    // Store comment IDs instead of embedding full documents
+    private Set<String> commentIds = new HashSet<>();
 
-    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL,orphanRemoval = true)
-    @JsonManagedReference
-    private List<Like> likes;
+    // Store like IDs instead of embedding full documents
+    private Set<String> likeIds = new HashSet<>();
 }
+

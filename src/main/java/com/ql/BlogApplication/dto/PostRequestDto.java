@@ -26,7 +26,6 @@ public class PostRequestDto {
     private String imageUrl;
 
     @NotNull(message = "Category ID must not be null")
-    @Positive(message = "Category ID must be a positive number")
-    private Long categoryId;
+    private String categoryId;
 
 }

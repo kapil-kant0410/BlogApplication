@@ -1,11 +1,14 @@
 package com.ql.BlogApplication.repository;
 
 import com.ql.BlogApplication.entity.Post;
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.mongodb.repository.MongoRepository;
+
 import java.util.List;
 import java.util.Optional;
 
-public interface PostRepository extends JpaRepository<Post,Long> {
+public interface PostRepository extends MongoRepository<Post,String> {
     List<Post> findByIsPublishedTrue();
-    Optional<Post> findByAuthorIdAndId(Long userId, Long postId);
+    List<Post> findByCategoryIdAndIsPublishedTrue(String categoryId);
+    Optional<Post> findByAuthorIdAndId(String userId, String postId);
+    List<Post> findByAuthorId(String authorId);
 }

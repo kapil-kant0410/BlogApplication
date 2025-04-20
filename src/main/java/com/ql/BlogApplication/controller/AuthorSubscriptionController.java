@@ -1,9 +1,8 @@
 package com.ql.BlogApplication.controller;
 
 import com.ql.BlogApplication.dto.ApiResponse;
-import com.ql.BlogApplication.dto.AuthorSubscribersResponseDto;
 import com.ql.BlogApplication.dto.AuthorSubscriptionRequestDto;
-import com.ql.BlogApplication.dto.UserSubscribedAuthorResponseDto;
+import com.ql.BlogApplication.entity.User;
 import com.ql.BlogApplication.service.AuthorSubscriptionService;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
@@ -25,27 +24,26 @@ public class AuthorSubscriptionController {
         return authorSubscriptionService.subscribeToAuthor(authorSubscriptionRequestDto);
     }
 
-    @DeleteMapping("/unSubscribe")
+    @DeleteMapping("/unsubscribe")
 
     ResponseEntity<ApiResponse<String>> unsubscribeFromAuthor(@Valid @RequestBody AuthorSubscriptionRequestDto authorSubscriptionRequestDto){
         return authorSubscriptionService.unsubscribeFromAuthor(authorSubscriptionRequestDto);
     }
 
-    @GetMapping("/allSubscriptions")
-    ResponseEntity<ApiResponse<List<UserSubscribedAuthorResponseDto>>> getUserSubscriptions(){
+    @GetMapping("/all-subscriptions")
+    ResponseEntity<ApiResponse<List<User>>> getUserSubscriptions(){
         return authorSubscriptionService.getUserSubscriptions();
     }
 
-    @GetMapping("/allSubscribers/{id}")
-    ResponseEntity<ApiResponse<List<AuthorSubscribersResponseDto>>> getAuthorSubscribers(@Valid @PathVariable Long id){
-        return authorSubscriptionService.getAuthorSubscribers(id);
+    @GetMapping("/all-subscribers")
+    ResponseEntity<ApiResponse<List<User>>> getAuthorSubscribers(){
+        return authorSubscriptionService.getAuthorSubscribers();
     }
 
-    @GetMapping("/subscribersCount/{id}")
-    ResponseEntity<ApiResponse<Integer>> getSubscribersCount(@Valid @PathVariable Long id){
-       return  authorSubscriptionService.getSubscribersCount(id);
+    @GetMapping("/subscribers-count")
+    ResponseEntity<ApiResponse<Integer>> getSubscribersCount(){
+       return  authorSubscriptionService.getSubscribersCount();
     }
-
 
 
 }

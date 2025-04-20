@@ -1,7 +1,6 @@
 package com.ql.BlogApplication.scheduler;
 
 import com.ql.BlogApplication.repository.OtpRepository;
-import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -23,7 +22,6 @@ public class OtpCleanupTask {
         this.otpRepository=otpRepository;
     }
 
-    @Transactional
     @Scheduled(fixedRateString ="${otp.cleanup.fixed-rate}" )
     public void deleteExpiredToken(){
 

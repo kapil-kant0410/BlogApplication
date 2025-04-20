@@ -19,6 +19,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import javax.swing.text.html.Option;
+
 
 @Service
 public class CommentService {
@@ -40,9 +42,9 @@ public class CommentService {
     public ResponseEntity<ApiResponse<String>> createComment(CommentRequestDto commentRequestDto){
 
             String token= TokenContext.getToken();
-            Long id= Long.parseLong(jwtUtil.extractId(token));
+            String userId= jwtUtil.extractId(token);
 
-            User user= userRepository.findById(id).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(201)));
+            User user= userRepository.findById(userId).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(201)));
             Post post= postRepository.findById(commentRequestDto.getPostId()).orElseThrow(()->new PostNotFoundException(MessageCodes.messages.get(221)));
 
             if(post.getIsPublished()==Boolean.FALSE){
@@ -52,20 +54,26 @@ public class CommentService {
 
             Comment comment=new Comment();
             comment.setContent(commentRequestDto.getContent());
-            comment.setUser(user);
-            comment.setPost(post);
+            comment.setUserId(user.getId());
+            comment.setPostId(post.getId());
 
             commentRepository.save(comment);
+
+            post.getCommentIds().add(comment.getId());
+            postRepository.save(post);
+
+            user.getCommentIds().add(comment.getId());
+            userRepository.save(user);
 
            ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(),MessageCodes.messages.get(141),MessageCodes.messages.get(141));
            return new ResponseEntity<>(apiResponse,HttpStatus.OK);
     }
 
     //working properly only same user on same post allowed to update a comment.
-    public ResponseEntity<ApiResponse<String>> updateComment(Long id, CommentUpdateRequestDto commentUpdateRequestDto){
+    public ResponseEntity<ApiResponse<String>> updateComment(String id,CommentUpdateRequestDto commentUpdateRequestDto){
 
         String token= TokenContext.getToken();
-        Long userId= Long.parseLong(jwtUtil.extractId(token));
+        String userId=jwtUtil.extractId(token);
 
         Comment comment=commentRepository.findByUserIdAndId(userId,id).orElseThrow(()->new CommentNotFoundException(MessageCodes.messages.get(241)));
 
@@ -77,12 +85,21 @@ public class CommentService {
     }
 
     //working properly deleting a comment by their comment id
-    public ResponseEntity<ApiResponse<String>> deleteComment(Long id){
+    public ResponseEntity<ApiResponse<String>> deleteComment(String id){
 
         String token= TokenContext.getToken();
-        Long userId= Long.parseLong(jwtUtil.extractId(token));
+        String userId= jwtUtil.extractId(token);
 
-        commentRepository.findByUserIdAndId(userId,id).orElseThrow(()->new CommentNotFoundException(MessageCodes.messages.get(241)));
+        User user=userRepository.findById(userId).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(201)));
+
+        Comment comment= commentRepository.findByUserIdAndId(userId,id).orElseThrow(()->new CommentNotFoundException(MessageCodes.messages.get(241)));
+        user.getCommentIds().remove(comment.getId());
+        userRepository.save(user);
+
+        Post post= postRepository.findById(comment.getPostId()).orElseThrow(()->new PostNotFoundException(MessageCodes.messages.get(221)));
+        post.getCommentIds().remove(comment.getId());
+        postRepository.save(post);
+
         commentRepository.deleteById(id);
 
         ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(),MessageCodes.messages.get(143),MessageCodes.messages.get(143));

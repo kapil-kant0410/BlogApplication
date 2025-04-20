@@ -2,18 +2,12 @@ package com.ql.BlogApplication.service;
 
 import com.ql.BlogApplication.constant.MessageCodes;
 import com.ql.BlogApplication.dto.ApiResponse;
-import com.ql.BlogApplication.dto.CommentResponseDto;
 import com.ql.BlogApplication.dto.PostRequestDto;
-import com.ql.BlogApplication.dto.PostResponseDto;
 import com.ql.BlogApplication.entity.*;
 import com.ql.BlogApplication.exception.CategoryNotFoundException;
 import com.ql.BlogApplication.exception.PostNotFoundException;
 import com.ql.BlogApplication.exception.UserNotFoundException;
-import com.ql.BlogApplication.mapper.CommentMapper;
-import com.ql.BlogApplication.mapper.PostMapper;
-import com.ql.BlogApplication.repository.CategoryRepository;
-import com.ql.BlogApplication.repository.PostRepository;
-import com.ql.BlogApplication.repository.UserRepository;
+import com.ql.BlogApplication.repository.*;
 import com.ql.BlogApplication.util.JwtUtil;
 import com.ql.BlogApplication.util.TokenContext;
 import org.slf4j.Logger;
@@ -30,7 +24,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
-import java.util.Optional;
+import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 
@@ -40,28 +35,28 @@ public class PostService {
       private final PostRepository postRepository;
       private final UserRepository userRepository;
       private final CategoryRepository categoryRepository;
+      private final CommentRepository commentRepository;
+      private final LikeRepository likeRepository;
       private final JwtUtil jwtUtil;
       @Value("${file.uploads-dir}")
       private String uploadDir;
       private static final Logger logger = LoggerFactory.getLogger(PostService.class);
 
 
-    PostService(PostRepository postRepository, UserRepository userRepository, CategoryRepository categoryRepository, JwtUtil jwtUtil){
+    PostService(LikeRepository likeRepository,PostRepository postRepository,CommentRepository commentRepository, UserRepository userRepository, CategoryRepository categoryRepository, JwtUtil jwtUtil){
           this.postRepository=postRepository;
           this.userRepository=userRepository;
           this.categoryRepository=categoryRepository;
           this.jwtUtil=jwtUtil;
+          this.commentRepository=commentRepository;
+          this.likeRepository=likeRepository;
       }
 
       //working fine getting all post
-      public ResponseEntity<ApiResponse<List<PostResponseDto>>> getAllPosts(){
-
+      public ResponseEntity<ApiResponse<List<Post>>> getAllPosts(){
           List<Post> allPosts=postRepository.findByIsPublishedTrue();
-          List<PostResponseDto> postResponseDtoList=PostMapper.toDtoList(allPosts);
-
-          ApiResponse<List<PostResponseDto>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),postResponseDtoList,"Posts fetched successfully.");
+          ApiResponse<List<Post>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),allPosts,"Posts fetched successfully.");
           return new ResponseEntity<>(apiResponse,HttpStatus.OK);
-
       }
 
       //working fine check for same post
@@ -70,27 +65,34 @@ public class PostService {
           Category category=categoryRepository.findById(postRequestDto.getCategoryId()).orElseThrow(()-> new CategoryNotFoundException(MessageCodes.messages.get(231)));
 
           Post newPost=new Post();
+
           newPost.setTitle(postRequestDto.getTitle());
           newPost.setContent(postRequestDto.getContent());
           newPost.setImageURL(postRequestDto.getImageUrl());
 
           String token= TokenContext.getToken();
-          Long id= Long.parseLong(jwtUtil.extractId(token));
+          String id= jwtUtil.extractId(token);
           User user=userRepository.findById(id).orElseThrow(()-> new UserNotFoundException(MessageCodes.messages.get(201)));
-          newPost.setAuthor(user);
-          newPost.setCategory(category);
+
+          newPost.setAuthorId(user.getId());
+          newPost.setCategoryId(category.getId());
           postRepository.save(newPost);
+
+          user.getPostIds().add(newPost.getId());
+          userRepository.save(user);
+          category.getPostIds().add(newPost.getId());
+          categoryRepository.save(category);
 
           ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(),MessageCodes.messages.get(121),MessageCodes.messages.get(121));
           return new ResponseEntity<>(apiResponse,HttpStatus.OK);
       }
 
-      public ResponseEntity<ApiResponse<String>> uploadImage(Long id,MultipartFile multipartFile) {
+      public ResponseEntity<ApiResponse<String>> uploadImage(String id,MultipartFile multipartFile) {
 
         try{
 
             String token= TokenContext.getToken();
-            Long userId= Long.parseLong(jwtUtil.extractId(token));
+            String userId= jwtUtil.extractId(token);
 
             String fileName= UUID.randomUUID()+"_"+multipartFile.getOriginalFilename();
             Post post=postRepository.findByAuthorIdAndId(userId,id).orElseThrow(()-> new PostNotFoundException(MessageCodes.messages.get(221)));
@@ -122,10 +124,10 @@ public class PostService {
       }
 
        //publish a post if not published
-       public ResponseEntity<ApiResponse<String>> publishPost(Long id){
+       public ResponseEntity<ApiResponse<String>> publishPost(String id){
 
         String token= TokenContext.getToken();
-        Long userId= Long.parseLong(jwtUtil.extractId(token));
+        String userId= jwtUtil.extractId(token);
 
         Post post=postRepository.findByAuthorIdAndId(userId,id).orElseThrow(()-> new PostNotFoundException(MessageCodes.messages.get(221)));
 
@@ -144,32 +146,58 @@ public class PostService {
     }
 
       //working fine getting all post under a category
-      public ResponseEntity<ApiResponse<List<PostResponseDto>>> findAllPostByCategory(String category){
-
-            List<Post> allPosts=postRepository.findByIsPublishedTrue();
-
-            List<Post> filterPosts= allPosts.stream().filter(post->post.getCategory().getName().equals(category)).toList();
-
-            List<PostResponseDto>  postResponseDtoList = PostMapper.toDtoList(filterPosts);
-
-            ApiResponse<List<PostResponseDto>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),postResponseDtoList,"All posts inside category");
+      public ResponseEntity<ApiResponse<List<Post>>> findAllPostByCategory(String category){
+            Category categoryEntity=categoryRepository.findByName(category).orElseThrow(()-> new CategoryNotFoundException(MessageCodes.messages.get(231)));
+            List<Post> posts=postRepository.findByCategoryIdAndIsPublishedTrue(categoryEntity.getId());
+            ApiResponse<List<Post>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),posts,"All posts inside category");
             return new ResponseEntity<>(apiResponse,HttpStatus.OK);
       }
 
       //working fine getting all comment list under a post
-      public ResponseEntity<ApiResponse<List<CommentResponseDto>>> findAllCommentByPostId(Long id){
+      public ResponseEntity<ApiResponse<List<Comment>>> findAllCommentByPostId(String id){
 
           String token= TokenContext.getToken();
-          Long userId= Long.parseLong(jwtUtil.extractId(token));
+          String userId= jwtUtil.extractId(token);
 
           Post post=postRepository.findByAuthorIdAndId(userId,id).orElseThrow(()->new PostNotFoundException(MessageCodes.messages.get(221)));
+          Set<String> commentIds=post.getCommentIds();
+          List<Comment> comments=commentRepository.findAllById(commentIds);
 
-          List<Comment> comments=post.getComments();
-
-          List<CommentResponseDto> allComments= CommentMapper.toDtoList(comments);
-
-          ApiResponse<List<CommentResponseDto>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),allComments, "All comments for a post");
+          ApiResponse<List<Comment>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),comments, "All comments for a post");
           return new ResponseEntity<>(apiResponse,HttpStatus.OK);
+      }
+
+      public ResponseEntity<ApiResponse<String>> deletePostByPostId(String postId){
+
+           String token=TokenContext.getToken();
+           String userId=jwtUtil.extractId(token);
+
+           Post post=postRepository.findById(postId).orElseThrow(()-> new PostNotFoundException(MessageCodes.messages.get(221)));
+
+           if(!Objects.equals(post.getAuthorId(), userId)){
+               ApiResponse<String> response = ApiResponse.error(HttpStatus.FORBIDDEN.value(), "Unauthorized", "You are not the author of this post.");
+               return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
+           }
+
+           if(post.getCommentIds()!=null && !post.getCommentIds().isEmpty()){
+               commentRepository.deleteAllById(post.getCommentIds());
+           }
+
+           if(post.getLikeIds()!=null && !post.getLikeIds().isEmpty()){
+               likeRepository.deleteAllById(post.getLikeIds());
+           }
+
+           User user=userRepository.findById(userId).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(201)));
+           user.getPostIds().remove(postId);
+           userRepository.save(user);
+
+           Category category=categoryRepository.findById(post.getCategoryId()).orElseThrow(()->new CategoryNotFoundException(MessageCodes.messages.get(231)));
+           category.getPostIds().remove(postId);
+           categoryRepository.save(category);
+
+           postRepository.deleteById(postId);
+           ApiResponse<String> response = ApiResponse.success(HttpStatus.OK.value(), MessageCodes.messages.get(123), MessageCodes.messages.get(123));
+           return new ResponseEntity<>(response, HttpStatus.OK);
       }
 
 }

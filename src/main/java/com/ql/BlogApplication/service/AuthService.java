@@ -5,13 +5,11 @@ import com.ql.BlogApplication.dto.*;
 import com.ql.BlogApplication.entity.Otp;
 import com.ql.BlogApplication.entity.Role;
 import com.ql.BlogApplication.entity.User;
-import com.ql.BlogApplication.entity.UserRole;
 import com.ql.BlogApplication.exception.RoleNotFoundException;
 import com.ql.BlogApplication.exception.UserNotFoundException;
 import com.ql.BlogApplication.repository.OtpRepository;
 import com.ql.BlogApplication.repository.RoleRepository;
 import com.ql.BlogApplication.repository.UserRepository;
-import com.ql.BlogApplication.repository.UserRoleRepository;
 import com.ql.BlogApplication.util.JwtUtil;
 import com.ql.BlogApplication.util.TokenContext;
 import org.slf4j.Logger;
@@ -37,16 +35,14 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
-    private final UserRoleRepository userRoleRepository;
     private final OtpRepository otpRepository;
     private final JavaMailSender javaMailSender;
     private final JwtUtil jwtUtil;
     private final Random random=new Random();
 
-      AuthService(UserRepository userRepository, RoleRepository roleRepository, UserRoleRepository userRoleRepository, JwtUtil jwtUtils,JavaMailSender javaMailSender,OtpRepository otpRepository){
+      AuthService(UserRepository userRepository, RoleRepository roleRepository,JwtUtil jwtUtils,JavaMailSender javaMailSender,OtpRepository otpRepository){
               this.userRepository=userRepository;
               this.roleRepository=roleRepository;
-              this.userRoleRepository=userRoleRepository;
               this.jwtUtil=jwtUtils;
               this.javaMailSender=javaMailSender;
               this.otpRepository=otpRepository;
@@ -65,13 +61,11 @@ public class AuthService {
         newUser.setName(userRequestDto.getName());
         newUser.setEmail(userRequestDto.getEmail());
         newUser.setPassword(userRequestDto.getPassword());
+
+        Set<String> roleIds=new HashSet<>();
+        roleIds.add(role.getId());
+        newUser.setRoleIds(roleIds);
         userRepository.save(newUser);
-
-        UserRole userRole=new UserRole();
-        userRole.setUser(newUser);
-        userRole.setRole(role);
-
-        userRoleRepository.save(userRole);
 
         ApiResponse<String> apiResponse= ApiResponse.<String>success(HttpStatus.CREATED.value(), jwtUtil.generateToken(newUser.getId()),MessageCodes.messages.get(101));
         return new ResponseEntity<>(apiResponse,HttpStatus.CREATED);
@@ -79,8 +73,7 @@ public class AuthService {
 
       public ResponseEntity<ApiResponse<String>> loginByPassword(UserLoginRequestDto authRequestDto){
 
-            User user=userRepository.findByEmail(authRequestDto.getEmail()).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(201)));
-
+             User user=userRepository.findByEmail(authRequestDto.getEmail()).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(201)));
              String dataBasePassword=user.getPassword();
              String requestPassword=authRequestDto.getPassword();
 
@@ -152,7 +145,7 @@ public class AuthService {
       public ResponseEntity<ApiResponse<String>> logout(){
 
           String token= TokenContext.getToken();
-          Long id= Long.parseLong(jwtUtil.extractId(token));
+          String id= jwtUtil.extractId(token);
 
           User user=userRepository.findById(id).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(201)));
 

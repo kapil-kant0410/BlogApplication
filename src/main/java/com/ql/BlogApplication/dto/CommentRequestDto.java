@@ -14,5 +14,5 @@ public class CommentRequestDto {
       private String content;
 
       @NotNull(message = "Post Id required.")
-      private Long postId;
+      private String postId;
 }

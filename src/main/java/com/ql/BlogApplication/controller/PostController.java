@@ -4,6 +4,8 @@ import com.ql.BlogApplication.dto.ApiResponse;
 import com.ql.BlogApplication.dto.CommentResponseDto;
 import com.ql.BlogApplication.dto.PostRequestDto;
 import com.ql.BlogApplication.dto.PostResponseDto;
+import com.ql.BlogApplication.entity.Comment;
+import com.ql.BlogApplication.entity.Post;
 import com.ql.BlogApplication.service.PostService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -25,9 +27,8 @@ public class PostController {
            this.postService=postService;
        }
 
-
        @GetMapping("/all")
-       ResponseEntity<ApiResponse<List<PostResponseDto>>> getAllPosts(){
+       ResponseEntity<ApiResponse<List<Post>>> getAllPosts(){
                 return postService.getAllPosts();
        }
 
@@ -37,25 +38,30 @@ public class PostController {
        }
 
        @PostMapping("/upload-image/{id}")
-       ResponseEntity<ApiResponse<String>> uploadImage(@PathVariable Long id,@RequestParam("file") MultipartFile multipartFile){
+       ResponseEntity<ApiResponse<String>> uploadImage(@PathVariable String id,@RequestParam("file") MultipartFile multipartFile){
           return postService.uploadImage(id,multipartFile);
        }
 
 
        @GetMapping("/{category}")
-       ResponseEntity<ApiResponse<List<PostResponseDto>>> findAllPostByCategory(@PathVariable String category){
+       ResponseEntity<ApiResponse<List<Post>>> findAllPostByCategory(@PathVariable String category){
                return postService.findAllPostByCategory(category);
        }
 
        @PutMapping("/publish/{id}")
-       ResponseEntity<ApiResponse<String>> publishPost(@PathVariable Long id){
+       ResponseEntity<ApiResponse<String>> publishPost(@PathVariable String id){
             return postService.publishPost(id);
        }
 
 
        @GetMapping("/getAllComments/{id}")
-       ResponseEntity<ApiResponse<List<CommentResponseDto>>> findAllCommentByPostId(@PathVariable Long id){
+       ResponseEntity<ApiResponse<List<Comment>>> findAllCommentByPostId(@PathVariable String id){
                return postService.findAllCommentByPostId(id);
+       }
+
+       @GetMapping("/delete/{id}")
+       ResponseEntity<ApiResponse<String>> deletePostByPostId(@PathVariable String id){
+              return postService.deletePostByPostId(id);
        }
 
 }

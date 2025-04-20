@@ -1,27 +1,24 @@
 package com.ql.BlogApplication.entity;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
-import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+
+import lombok.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Entity
-@Table(name = "categories")
+@Document(collection = "categories")
 public class Category {
-    @Id
-    @GeneratedValue(strategy=GenerationType.IDENTITY)
-    Long id;
 
-    @Column(nullable = false,unique = true,length = 50)
+    @Id
+    private String id;
+
     private String name;
 
-    @OneToMany(mappedBy = "category")
-    @JsonManagedReference
-    private List<Post> posts;
+    // Store Post IDs instead of embedding or mapping
+    private List<String> postIds = new ArrayList<>();
 }

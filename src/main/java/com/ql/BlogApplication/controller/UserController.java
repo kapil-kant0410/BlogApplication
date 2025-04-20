@@ -21,13 +21,13 @@ public class UserController {
      private final UserService userService;
 
      @GetMapping("/all")
-     public ResponseEntity<ApiResponse<List<UserResponseDto>>> getAllUsers(){
+     public ResponseEntity<ApiResponse<List<User>>> getAllUsers(){
           logger.info("Fetching all users.");
           return userService.getAllUsers();
      }
 
      @GetMapping("/{id}")
-     public ResponseEntity<ApiResponse<UserResponseDto>> getUserById(@PathVariable Long id){
+     public ResponseEntity<ApiResponse<User>> getUserById(@PathVariable String id){
          logger.info("Fetching user with ID: {}", id);
          return userService.getUserById(id);
      }

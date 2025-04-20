@@ -31,7 +31,7 @@ public class CategoryController {
     }
 
     @DeleteMapping("/delete/{id}")
-    ResponseEntity<ApiResponse<String>> deleteCategory(@Valid @PathVariable Long id){
+    ResponseEntity<ApiResponse<String>> deleteCategory(@Valid @PathVariable String id){
         return categoryService.deleteCategory(id);
     }
 

@@ -22,12 +22,12 @@ public class CommentController {
     }
 
     @PutMapping("/update/{id}")
-    ResponseEntity<ApiResponse<String>> updateComment(@PathVariable Long id, @Valid @RequestBody CommentUpdateRequestDto commentUpdateRequestDto){
+    ResponseEntity<ApiResponse<String>> updateComment(@PathVariable String id, @Valid @RequestBody CommentUpdateRequestDto commentUpdateRequestDto){
         return commentService.updateComment(id,commentUpdateRequestDto);
     }
 
     @DeleteMapping("/delete/{id}")
-    ResponseEntity<ApiResponse<String>> deleteComment(@PathVariable Long id){
+    ResponseEntity<ApiResponse<String>> deleteComment(@PathVariable String id){
         return commentService.deleteComment(id);
     }
 

@@ -1,10 +1,10 @@
 package com.ql.BlogApplication.repository;
-import org.springframework.data.jpa.repository.JpaRepository;
 import com.ql.BlogApplication.entity.User;
+import org.springframework.data.mongodb.repository.MongoRepository;
 
 import java.util.Optional;
 
-public interface UserRepository extends JpaRepository<User,Long>{
+public interface UserRepository extends MongoRepository<User,String> {
     boolean existsByEmail(String email);
     Optional<User> findByEmail(String email);
 }

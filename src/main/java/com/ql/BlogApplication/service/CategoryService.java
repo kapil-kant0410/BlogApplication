@@ -24,8 +24,8 @@ public class CategoryService {
 
     //returns all category list from the category table
     public ResponseEntity<ApiResponse<List<Category>>> getAllCategory(){
-         List<Category> allCategory= categoryRepository.findAll();
-         ApiResponse<List<Category>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),allCategory,MessageCodes.messages.get(134));
+         List<Category> allCategories  = categoryRepository.findAll();
+         ApiResponse<List<Category>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),allCategories,MessageCodes.messages.get(134));
          return new ResponseEntity<>(apiResponse,HttpStatus.OK);
     }
 
@@ -46,17 +46,21 @@ public class CategoryService {
     }
 
     //delete a category and assign all post under it as uncategorized
-    public ResponseEntity<ApiResponse<String>> deleteCategory(Long id) {
+    public ResponseEntity<ApiResponse<String>> deleteCategory(String id) {
+
         Category category=categoryRepository.findById(id).orElseThrow(()->new CategoryNotFoundException(MessageCodes.messages.get(231)));
         Category uncategorized=categoryRepository.findByName("uncategorized").orElseThrow(()->new CategoryNotFoundException(MessageCodes.messages.get(231)));
 
-        List<Post> posts=category.getPosts();
+        List<String> postIds=category.getPostIds();
+        List<Post>   posts=postRepository.findAllById(postIds);
 
         for(Post post:posts){
-              post.setCategory(uncategorized);
-              postRepository.save(post);
+              post.setCategoryId(uncategorized.getId());
+              uncategorized.getPostIds().add(post.getId());
+              categoryRepository.save(uncategorized);
         }
 
+        postRepository.saveAll(posts);
         categoryRepository.deleteById(id);
 
         ApiResponse<String> apiResponse= ApiResponse.success(HttpStatus.OK.value(),MessageCodes.messages.get(133),MessageCodes.messages.get(133));
