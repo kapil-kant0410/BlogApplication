@@ -2,10 +2,14 @@ package com.ql.BlogApplication.service;
 
 import com.ql.BlogApplication.constant.MessageCodes;
 import com.ql.BlogApplication.dto.ApiResponse;
+import com.ql.BlogApplication.dto.AuthorSubscribersResponseDto;
 import com.ql.BlogApplication.dto.AuthorSubscriptionRequestDto;
+import com.ql.BlogApplication.dto.UserSubscribedAuthorResponseDto;
 import com.ql.BlogApplication.entity.Role;
 import com.ql.BlogApplication.entity.User;
 import com.ql.BlogApplication.exception.UserNotFoundException;
+import com.ql.BlogApplication.mapper.SubscriberMapper;
+import com.ql.BlogApplication.mapper.SubscriptionsMapper;
 import com.ql.BlogApplication.repository.RoleRepository;
 import com.ql.BlogApplication.repository.UserRepository;
 import com.ql.BlogApplication.util.JwtUtil;
@@ -99,7 +103,7 @@ public class AuthorSubscriptionService {
     }
 
     //working properly getting user subscribed authors
-    public ResponseEntity<ApiResponse<List<User>>> getUserSubscriptions(){
+    public ResponseEntity<ApiResponse<List<UserSubscribedAuthorResponseDto>>> getUserSubscriptions(){
 
         String token= TokenContext.getToken();
         String id= jwtUtil.extractId(token);
@@ -109,14 +113,14 @@ public class AuthorSubscriptionService {
         Set<String> subscribedAuthorIds=user.getSubscribedAuthorIds();
         List<User> subscribedAuthors=userRepository.findAllById(subscribedAuthorIds);
 
-        //List<UserSubscribedAuthorResponseDto> authorSubscriptionResponseDtoList= SubscriptionsMapper.toDtoList(subscribedAuthors);
+        List<UserSubscribedAuthorResponseDto> authorSubscriptionResponseDtoList= SubscriptionsMapper.toDtoList(subscribedAuthors);
 
-        ApiResponse<List<User>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),subscribedAuthors,MessageCodes.messages.get(163));
+        ApiResponse<List<UserSubscribedAuthorResponseDto>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),authorSubscriptionResponseDtoList,MessageCodes.messages.get(163));
         return new ResponseEntity<>(apiResponse,HttpStatus.OK);
     }
 
     //working properly getting author subscribers
-    public ResponseEntity<ApiResponse<List<User>>> getAuthorSubscribers(){
+    public ResponseEntity<ApiResponse<List<AuthorSubscribersResponseDto>>> getAuthorSubscribers(){
 
         String token= TokenContext.getToken();
         String userId= jwtUtil.extractId(token);
@@ -130,14 +134,14 @@ public class AuthorSubscriptionService {
                 .anyMatch(role -> "author".equalsIgnoreCase(role.getName()));
 
         if(!isAuthor){
-            ApiResponse<List<User>> apiResponse=ApiResponse.error(HttpStatus.BAD_REQUEST.value(), Collections.emptyList(),"Provide user is not an author");
+            ApiResponse<List<AuthorSubscribersResponseDto>> apiResponse=ApiResponse.error(HttpStatus.BAD_REQUEST.value(), Collections.emptyList(),"Provide user is not an author");
             return new ResponseEntity<>(apiResponse,HttpStatus.BAD_REQUEST);
         }
 
-         List<User> authorSubscribers= userRepository.findAllById(subscriberIds);
-        //List<AuthorSubscribersResponseDto> authorSubscribersList= SubscriberMapper.toDtoList(authorSubscribers);
+          List<User> authorSubscribers= userRepository.findAllById(subscriberIds);
+          List<AuthorSubscribersResponseDto> authorSubscribersList= SubscriberMapper.toDtoList(authorSubscribers);
 
-        ApiResponse<List<User>> apiResponse=ApiResponse.success(HttpStatus.OK.value(), authorSubscribers,MessageCodes.messages.get(164));
+        ApiResponse<List<AuthorSubscribersResponseDto>> apiResponse=ApiResponse.success(HttpStatus.OK.value(), authorSubscribersList,MessageCodes.messages.get(164));
         return new ResponseEntity<>(apiResponse,HttpStatus.OK);
     }
 

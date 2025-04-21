@@ -28,7 +28,7 @@ public class PostController {
        }
 
        @GetMapping("/all")
-       ResponseEntity<ApiResponse<List<Post>>> getAllPosts(){
+       ResponseEntity<ApiResponse<List<PostResponseDto>>> getAllPosts(){
                 return postService.getAllPosts();
        }
 
@@ -44,7 +44,7 @@ public class PostController {
 
 
        @GetMapping("/{category}")
-       ResponseEntity<ApiResponse<List<Post>>> findAllPostByCategory(@PathVariable String category){
+       ResponseEntity<ApiResponse<List<PostResponseDto>>> findAllPostByCategory(@PathVariable String category){
                return postService.findAllPostByCategory(category);
        }
 
@@ -55,7 +55,7 @@ public class PostController {
 
 
        @GetMapping("/getAllComments/{id}")
-       ResponseEntity<ApiResponse<List<Comment>>> findAllCommentByPostId(@PathVariable String id){
+       ResponseEntity<ApiResponse<List<CommentResponseDto>>> findAllCommentByPostId(@PathVariable String id){
                return postService.findAllCommentByPostId(id);
        }
 

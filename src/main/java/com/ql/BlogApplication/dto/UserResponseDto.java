@@ -11,7 +11,6 @@ import java.util.List;
 @Setter
 @Builder
 public class UserResponseDto {
-
     private String name;
     private String email;
     private List<String> role=new ArrayList<>();

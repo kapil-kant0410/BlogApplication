@@ -1,7 +1,9 @@
 package com.ql.BlogApplication.controller;
 
 import com.ql.BlogApplication.dto.ApiResponse;
+import com.ql.BlogApplication.dto.AuthorSubscribersResponseDto;
 import com.ql.BlogApplication.dto.AuthorSubscriptionRequestDto;
+import com.ql.BlogApplication.dto.UserSubscribedAuthorResponseDto;
 import com.ql.BlogApplication.entity.User;
 import com.ql.BlogApplication.service.AuthorSubscriptionService;
 import jakarta.validation.Valid;
@@ -31,12 +33,12 @@ public class AuthorSubscriptionController {
     }
 
     @GetMapping("/all-subscriptions")
-    ResponseEntity<ApiResponse<List<User>>> getUserSubscriptions(){
+    ResponseEntity<ApiResponse<List<UserSubscribedAuthorResponseDto>>> getUserSubscriptions(){
         return authorSubscriptionService.getUserSubscriptions();
     }
 
     @GetMapping("/all-subscribers")
-    ResponseEntity<ApiResponse<List<User>>> getAuthorSubscribers(){
+    ResponseEntity<ApiResponse<List<AuthorSubscribersResponseDto>>> getAuthorSubscribers(){
         return authorSubscriptionService.getAuthorSubscribers();
     }
 

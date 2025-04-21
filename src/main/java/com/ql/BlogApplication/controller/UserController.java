@@ -1,4 +1,5 @@
 package com.ql.BlogApplication.controller;
+
 import com.ql.BlogApplication.dto.*;
 import com.ql.BlogApplication.entity.User;
 import jakarta.validation.Valid;
@@ -21,13 +22,13 @@ public class UserController {
      private final UserService userService;
 
      @GetMapping("/all")
-     public ResponseEntity<ApiResponse<List<User>>> getAllUsers(){
-          logger.info("Fetching all users.");
-          return userService.getAllUsers();
+     public ResponseEntity<ApiResponse<List<UserResponseDto>>> getAllUsers(){
+           logger.info("Fetching all users.");
+           return userService.getAllUsers();
      }
 
      @GetMapping("/{id}")
-     public ResponseEntity<ApiResponse<User>> getUserById(@PathVariable String id){
+     public ResponseEntity<ApiResponse<UserResponseDto>> getUserById(@PathVariable String id){
          logger.info("Fetching user with ID: {}", id);
          return userService.getUserById(id);
      }

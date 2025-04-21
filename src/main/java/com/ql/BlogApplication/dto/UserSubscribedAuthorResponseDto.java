@@ -10,7 +10,7 @@ import lombok.Setter;
 @Builder
 public class UserSubscribedAuthorResponseDto {
 
-   private  Long authorId;
+   private  String authorId;
    private  String name;
    private String email;
 

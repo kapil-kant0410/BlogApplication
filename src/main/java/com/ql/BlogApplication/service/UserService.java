@@ -7,6 +7,7 @@ import com.ql.BlogApplication.entity.Role;
 import com.ql.BlogApplication.entity.User;
 import com.ql.BlogApplication.exception.RoleNotFoundException;
 import com.ql.BlogApplication.exception.UserNotFoundException;
+import com.ql.BlogApplication.mapper.UserMapper;
 import com.ql.BlogApplication.repository.*;
 import com.ql.BlogApplication.util.JwtUtil;
 import com.ql.BlogApplication.util.TokenContext;
@@ -28,29 +29,32 @@ public class UserService {
       private final PostRepository postRepository;
       private final CommentRepository commentRepository;
       private final LikeRepository likeRepository;
+      private final UserMapper userMapper;
 
       //Working properly
-      public UserService(LikeRepository likeRepository,CommentRepository commentRepository,PostRepository postRepository,UserRepository userRepository, RoleRepository roleRepository,JwtUtil jwtUtil){
+      public UserService(UserMapper userMapper,LikeRepository likeRepository,CommentRepository commentRepository,PostRepository postRepository,UserRepository userRepository, RoleRepository roleRepository,JwtUtil jwtUtil){
           this.userRepository=userRepository;
           this.roleRepository=roleRepository;
           this.jwtUtil=jwtUtil;
           this.postRepository=postRepository;
           this.commentRepository=commentRepository;
           this.likeRepository=likeRepository;
+          this.userMapper=userMapper;
       }
 
       //Working properly
-      public ResponseEntity<ApiResponse<List<User>>> getAllUsers(){
+      public ResponseEntity<ApiResponse<List<UserResponseDto>>> getAllUsers(){
         List<User> allUsers= userRepository.findAll();
-        ApiResponse<List<User>> apiResponse= ApiResponse.<List<User>>success(HttpStatus.OK.value(), allUsers,"All users fetched successfully");
+        List<UserResponseDto> userResponseDtoList=userMapper.toDtoList(allUsers);
+        ApiResponse<List<UserResponseDto>> apiResponse= ApiResponse.<List<UserResponseDto>>success(HttpStatus.OK.value(), userResponseDtoList,"All users fetched successfully");
         return new ResponseEntity<>(apiResponse,HttpStatus.OK);
       }
 
       //Working properly
-      public ResponseEntity<ApiResponse<User>> getUserById(String id){
+      public ResponseEntity<ApiResponse<UserResponseDto>> getUserById(String id){
           User user=userRepository.findById(id).orElseThrow(()-> new UserNotFoundException(MessageCodes.messages.get(201)));
-
-          ApiResponse<User> apiResponse= ApiResponse.<User>success(HttpStatus.OK.value(), user,MessageCodes.messages.get(105));
+          UserResponseDto userResponseDto=userMapper.toDto(user);
+          ApiResponse<UserResponseDto> apiResponse= ApiResponse.<UserResponseDto>success(HttpStatus.OK.value(), userResponseDto,MessageCodes.messages.get(105));
           return new ResponseEntity<>(apiResponse,HttpStatus.OK);
       }
 

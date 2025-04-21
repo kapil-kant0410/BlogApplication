@@ -2,11 +2,15 @@ package com.ql.BlogApplication.service;
 
 import com.ql.BlogApplication.constant.MessageCodes;
 import com.ql.BlogApplication.dto.ApiResponse;
+import com.ql.BlogApplication.dto.CommentResponseDto;
 import com.ql.BlogApplication.dto.PostRequestDto;
+import com.ql.BlogApplication.dto.PostResponseDto;
 import com.ql.BlogApplication.entity.*;
 import com.ql.BlogApplication.exception.CategoryNotFoundException;
 import com.ql.BlogApplication.exception.PostNotFoundException;
 import com.ql.BlogApplication.exception.UserNotFoundException;
+import com.ql.BlogApplication.mapper.CommentMapper;
+import com.ql.BlogApplication.mapper.PostMapper;
 import com.ql.BlogApplication.repository.*;
 import com.ql.BlogApplication.util.JwtUtil;
 import com.ql.BlogApplication.util.TokenContext;
@@ -38,24 +42,29 @@ public class PostService {
       private final CommentRepository commentRepository;
       private final LikeRepository likeRepository;
       private final JwtUtil jwtUtil;
+      private final PostMapper postMapper;
+      private final CommentMapper commentMapper;
       @Value("${file.uploads-dir}")
       private String uploadDir;
       private static final Logger logger = LoggerFactory.getLogger(PostService.class);
 
 
-    PostService(LikeRepository likeRepository,PostRepository postRepository,CommentRepository commentRepository, UserRepository userRepository, CategoryRepository categoryRepository, JwtUtil jwtUtil){
+    PostService(CommentMapper commentMapper,PostMapper postMapper,LikeRepository likeRepository,PostRepository postRepository,CommentRepository commentRepository, UserRepository userRepository, CategoryRepository categoryRepository, JwtUtil jwtUtil){
           this.postRepository=postRepository;
           this.userRepository=userRepository;
           this.categoryRepository=categoryRepository;
           this.jwtUtil=jwtUtil;
           this.commentRepository=commentRepository;
           this.likeRepository=likeRepository;
+          this.postMapper=postMapper;
+          this.commentMapper=commentMapper;
       }
 
       //working fine getting all post
-      public ResponseEntity<ApiResponse<List<Post>>> getAllPosts(){
+      public ResponseEntity<ApiResponse<List<PostResponseDto>>> getAllPosts(){
           List<Post> allPosts=postRepository.findByIsPublishedTrue();
-          ApiResponse<List<Post>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),allPosts,"Posts fetched successfully.");
+          List<PostResponseDto> postResponseDtoList=postMapper.toDtoList(allPosts);
+          ApiResponse<List<PostResponseDto>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),postResponseDtoList,"Posts fetched successfully.");
           return new ResponseEntity<>(apiResponse,HttpStatus.OK);
       }
 
@@ -87,6 +96,7 @@ public class PostService {
           return new ResponseEntity<>(apiResponse,HttpStatus.OK);
       }
 
+      //uploading image to the post using multipart file
       public ResponseEntity<ApiResponse<String>> uploadImage(String id,MultipartFile multipartFile) {
 
         try{
@@ -146,15 +156,16 @@ public class PostService {
     }
 
       //working fine getting all post under a category
-      public ResponseEntity<ApiResponse<List<Post>>> findAllPostByCategory(String category){
+      public ResponseEntity<ApiResponse<List<PostResponseDto>>> findAllPostByCategory(String category){
             Category categoryEntity=categoryRepository.findByName(category).orElseThrow(()-> new CategoryNotFoundException(MessageCodes.messages.get(231)));
             List<Post> posts=postRepository.findByCategoryIdAndIsPublishedTrue(categoryEntity.getId());
-            ApiResponse<List<Post>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),posts,"All posts inside category");
+            List<PostResponseDto> postResponseDtoList=postMapper.toDtoList(posts);
+            ApiResponse<List<PostResponseDto>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),postResponseDtoList,"All posts inside category");
             return new ResponseEntity<>(apiResponse,HttpStatus.OK);
       }
 
       //working fine getting all comment list under a post
-      public ResponseEntity<ApiResponse<List<Comment>>> findAllCommentByPostId(String id){
+      public ResponseEntity<ApiResponse<List<CommentResponseDto>>> findAllCommentByPostId(String id){
 
           String token= TokenContext.getToken();
           String userId= jwtUtil.extractId(token);
@@ -163,10 +174,13 @@ public class PostService {
           Set<String> commentIds=post.getCommentIds();
           List<Comment> comments=commentRepository.findAllById(commentIds);
 
-          ApiResponse<List<Comment>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),comments, "All comments for a post");
+          List<CommentResponseDto> commentResponseDtoList= commentMapper.toDtoList(comments);
+
+          ApiResponse<List<CommentResponseDto>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),commentResponseDtoList, "All comments for a post");
           return new ResponseEntity<>(apiResponse,HttpStatus.OK);
       }
 
+      //deleting a post
       public ResponseEntity<ApiResponse<String>> deletePostByPostId(String postId){
 
            String token=TokenContext.getToken();
