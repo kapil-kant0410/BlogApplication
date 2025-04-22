@@ -26,7 +26,6 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 public class GlobalExceptionHandler {
 
     private static final  Logger logger=  LoggerFactory.getLogger(GlobalExceptionHandler.class);
-    Map<String,String> errors=new HashMap<>();
 
     @ExceptionHandler(Exception.class)
     public  ResponseEntity<ApiResponse<String>> handleAllExceptions(Exception ex){
@@ -105,6 +104,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Map<String,String>>> handleValidationExceptions(MethodArgumentNotValidException ex) {
         logger.warn("Validation failed: {}", ex.getMessage());
+        Map<String,String> errors=new HashMap<>();
         ex.getBindingResult().getFieldErrors().forEach(err ->
                 errors.put(err.getField(), err.getDefaultMessage())
         );
