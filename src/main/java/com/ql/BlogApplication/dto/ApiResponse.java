@@ -17,8 +17,8 @@ public class ApiResponse<T> {
     private boolean status;
     private int code;
     private String message;
-    @Builder.Default
-    private T data = (T) Collections.emptyMap();
+   // @Builder.Default
+    private T data;
     private T errors;
 
     public static <T> ApiResponse<T> success(int code ,T data ,String message){

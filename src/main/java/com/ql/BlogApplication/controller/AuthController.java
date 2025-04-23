@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -22,28 +24,28 @@ public class AuthController {
        private final AuthService authService;
 
        @PostMapping("/register")
-       public ResponseEntity<ApiResponse<String>> registerUser(@Valid @RequestBody UserRegisterRequestDto userRegisterRequestDto){
+       public ResponseEntity<ApiResponse<Map<String,String>>> registerUser(@Valid @RequestBody UserRegisterRequestDto userRegisterRequestDto){
            return authService.registerUser(userRegisterRequestDto);
        }
 
       @PostMapping("/login")
-      public ResponseEntity<ApiResponse<String>> loginByPassword(@Valid @RequestBody UserLoginRequestDto userLoginRequestDto) {
+      public ResponseEntity<ApiResponse<Map<String,String>>> loginByPassword(@Valid @RequestBody UserLoginRequestDto userLoginRequestDto) {
              return authService.loginByPassword(userLoginRequestDto);
       }
 
       @PostMapping("/generate-otp")
-      public ResponseEntity<ApiResponse<String>> generateOtp(@Valid @RequestBody OtpGenerationRequestDto otpGenerationRequestDto){
+      public ResponseEntity<ApiResponse<Map<String,String>>> generateOtp(@Valid @RequestBody OtpGenerationRequestDto otpGenerationRequestDto){
            logger.info("inside from generate otp");
            return authService.generateOtp(otpGenerationRequestDto);
       }
 
       @PostMapping("/validate-otp")
-      public ResponseEntity<ApiResponse<String>> validateOtp(@Valid @RequestBody OtpValidationRequestDto userValidateOtpLoginRequestDto){
+      public ResponseEntity<ApiResponse<Map<String,String>>> validateOtp(@Valid @RequestBody OtpValidationRequestDto userValidateOtpLoginRequestDto){
         return authService.validateOtp(userValidateOtpLoginRequestDto);
       }
 
       @PostMapping("/logout")
-      public ResponseEntity<ApiResponse<String>> logout(){
+      public ResponseEntity<ApiResponse<Map<String,String>>> logout(){
            return authService.logout();
       }
 
