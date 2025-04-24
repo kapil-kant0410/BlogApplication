@@ -1,10 +1,7 @@
 package com.ql.BlogApplication.dto;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
 
 @Getter
 @Setter

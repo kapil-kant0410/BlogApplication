@@ -30,7 +30,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 
@@ -53,8 +52,8 @@ public class PostService {
           this.jwtUtil=jwtUtil;
       }
 
-      //working fine getting all post
-      public ResponseEntity<ApiResponse<List<PostResponseDto>>> getAllPosts(){
+       //working fine getting all post
+       public ResponseEntity<ApiResponse<List<PostResponseDto>>> getAllPosts(){
 
           List<Post> allPosts=postRepository.findByIsPublishedTrue();
           List<PostResponseDto> postResponseDtoList=PostMapper.toDtoList(allPosts);
@@ -64,8 +63,8 @@ public class PostService {
 
       }
 
-      //working fine check for same post
-      public ResponseEntity<ApiResponse<String>> createPost(PostRequestDto postRequestDto) {
+       //working fine check for same post
+       public ResponseEntity<ApiResponse<String>> createPost(PostRequestDto postRequestDto) {
 
           Category category=categoryRepository.findById(postRequestDto.getCategoryId()).orElseThrow(()-> new CategoryNotFoundException(MessageCodes.messages.get(231)));
 
@@ -85,7 +84,7 @@ public class PostService {
           return new ResponseEntity<>(apiResponse,HttpStatus.OK);
       }
 
-      public ResponseEntity<ApiResponse<String>> uploadImage(Long id,MultipartFile multipartFile) {
+       public ResponseEntity<ApiResponse<String>> uploadImage(Long id,MultipartFile multipartFile) {
 
         try{
 
@@ -143,8 +142,8 @@ public class PostService {
         return new ResponseEntity<>(apiResponse,HttpStatus.OK);
     }
 
-      //working fine getting all post under a category
-      public ResponseEntity<ApiResponse<List<PostResponseDto>>> findAllPostByCategory(String category){
+       //working fine getting all post under a category
+       public ResponseEntity<ApiResponse<List<PostResponseDto>>> findAllPostByCategory(String category){
 
             List<Post> allPosts=postRepository.findByIsPublishedTrue();
 
@@ -156,8 +155,8 @@ public class PostService {
             return new ResponseEntity<>(apiResponse,HttpStatus.OK);
       }
 
-      //working fine getting all comment list under a post
-      public ResponseEntity<ApiResponse<List<CommentResponseDto>>> findAllCommentByPostId(Long id){
+       //working fine getting all comment list under a post
+       public ResponseEntity<ApiResponse<List<CommentResponseDto>>> findAllCommentByPostId(Long id){
 
           String token= TokenContext.getToken();
           Long userId= Long.parseLong(jwtUtil.extractId(token));

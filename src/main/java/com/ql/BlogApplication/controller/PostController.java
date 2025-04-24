@@ -5,7 +5,6 @@ import com.ql.BlogApplication.dto.CommentResponseDto;
 import com.ql.BlogApplication.dto.PostRequestDto;
 import com.ql.BlogApplication.dto.PostResponseDto;
 import com.ql.BlogApplication.service.PostService;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
