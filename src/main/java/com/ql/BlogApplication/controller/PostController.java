@@ -1,15 +1,13 @@
 package com.ql.BlogApplication.controller;
 
-import com.ql.BlogApplication.dto.ApiResponse;
-import com.ql.BlogApplication.dto.CommentResponseDto;
-import com.ql.BlogApplication.dto.PostRequestDto;
-import com.ql.BlogApplication.dto.PostResponseDto;
+import com.ql.BlogApplication.dto.*;
 import com.ql.BlogApplication.service.PostService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
 import java.util.List;
 
 @RestController
@@ -40,6 +38,15 @@ public class PostController {
           return postService.uploadImage(id,multipartFile);
        }
 
+       @PostMapping("/generate-presignedUrl")
+       ResponseEntity<ApiResponse<String>>  generatePreSignedUrl(@Valid @RequestBody GeneratePresignedUrlDto generatePresignedUrlDto ){
+          return postService.generatePreSignedUrl(generatePresignedUrlDto.getFileName(),generatePresignedUrlDto.getContentType());
+       }
+
+       @PostMapping("confirm-image-upload/{postId}")
+       ResponseEntity<ApiResponse<String>>  confirmImageUpload(@PathVariable Long postId, @Valid @RequestBody ConfirmImageUploadDto confirmImageUploadDto){
+           return postService.confirmImageUpload(postId,confirmImageUploadDto.getImageUrl());
+       }
 
        @GetMapping("/{category}")
        ResponseEntity<ApiResponse<List<PostResponseDto>>> findAllPostByCategory(@PathVariable String category){

@@ -23,12 +23,17 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.ObjectCannedACL;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
+import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.regions.Region;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 
@@ -40,16 +45,24 @@ public class PostService {
       private final UserRepository userRepository;
       private final CategoryRepository categoryRepository;
       private final JwtUtil jwtUtil;
-      @Value("${file.uploads-dir}")
-      private String uploadDir;
+      private final S3Client s3Client;
+      private final S3Presigner s3Presigner;
       private static final Logger logger = LoggerFactory.getLogger(PostService.class);
 
+      @Value("${aws.s3.bucket}")
+       private String bucketName;
 
-    PostService(PostRepository postRepository, UserRepository userRepository, CategoryRepository categoryRepository, JwtUtil jwtUtil){
+      @Value(("${aws.region}"))
+      private String awsRegion;
+
+
+    PostService(S3Presigner s3Presigner,S3Client s3Client,PostRepository postRepository, UserRepository userRepository, CategoryRepository categoryRepository, JwtUtil jwtUtil){
           this.postRepository=postRepository;
           this.userRepository=userRepository;
           this.categoryRepository=categoryRepository;
           this.jwtUtil=jwtUtil;
+          this.s3Client=s3Client;
+          this.s3Presigner=s3Presigner;
       }
 
        //working fine getting all post
@@ -84,6 +97,7 @@ public class PostService {
           return new ResponseEntity<>(apiResponse,HttpStatus.OK);
       }
 
+       //uploading image in s3 bucket
        public ResponseEntity<ApiResponse<String>> uploadImage(Long id,MultipartFile multipartFile) {
 
         try{
@@ -94,30 +108,77 @@ public class PostService {
             String fileName= UUID.randomUUID()+"_"+multipartFile.getOriginalFilename();
             Post post=postRepository.findByAuthorIdAndId(userId,id).orElseThrow(()-> new PostNotFoundException(MessageCodes.messages.get(221)));
 
-            Path uploadPath= Paths.get(uploadDir);
-
-            if(!Files.exists(uploadPath)){
-                Files.createDirectories(uploadPath);
+            if(post.getImageURL()!=null){
+               String oldKey=post.getImageURL().substring(post.getImageURL().lastIndexOf("/")+1);
+               s3Client.deleteObject(DeleteObjectRequest.builder().bucket(bucketName).key(oldKey).build());
             }
 
-            Path filePath=uploadPath.resolve(fileName);
-            Files.copy(multipartFile.getInputStream(),filePath, StandardCopyOption.REPLACE_EXISTING);
+            PutObjectRequest putObjectRequest=PutObjectRequest.builder()
+                            .bucket(bucketName)
+                                    .key(fileName)
+                                            .contentType(multipartFile.getContentType())
+                                                    .acl(ObjectCannedACL.PUBLIC_READ)
+                                                            .build();
 
-            String imageUrl="http://localhost:8080/uploads/"+fileName;
-
-            logger.info("URL for the image: {}", imageUrl);
-
+            s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(multipartFile.getInputStream(),multipartFile.getSize()));
+            String imageUrl="https://" + bucketName + ".s3.amazonaws.com/" + fileName;
             post.setImageURL(imageUrl);
+
             postRepository.save(post);
             logger.info("Image saved successfully");
 
         }catch (IOException ioException){
+            logger.error("error while uploading image on s3");
             ApiResponse<String> apiResponse=ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR.value(),"Internal server error","internal server error");
             return new ResponseEntity<>(apiResponse,HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
           ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(),"image uploaded successfully","image uploaded successfully");
           return new ResponseEntity<>(apiResponse,HttpStatus.OK);
+      }
+
+      //generating presigned url for uploading image
+       public ResponseEntity<ApiResponse<String>> generatePreSignedUrl(String fileName,String contentType){
+           try{
+               String uniqueFilename = UUID.randomUUID() + "_" + fileName;
+               PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                       .bucket(bucketName)
+                       .key(uniqueFilename)
+                       .contentType(contentType)
+                       .acl(ObjectCannedACL.PUBLIC_READ)
+                       .build();
+
+               PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
+                       .signatureDuration(Duration.ofMinutes(15))
+                       .putObjectRequest(putObjectRequest)
+                       .build();
+
+               PresignedPutObjectRequest presignedRequest = s3Presigner.presignPutObject(presignRequest);
+
+               ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(), presignedRequest.url().toString(), "PreSigned URL generated successfully");
+               return new ResponseEntity<>(apiResponse,HttpStatus.OK);
+           }catch (Exception e) {
+               e.printStackTrace();
+               ApiResponse<String> apiResponse=ApiResponse.error(HttpStatus.OK.value(), null, "Failed to generate PreSigned URL");
+               return new ResponseEntity<>(apiResponse,HttpStatus.OK);
+           }
+       }
+
+       //confirmed upload from presigned url and save to db
+       public ResponseEntity<ApiResponse<String>> confirmImageUpload(Long postId,String imageUrl) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new PostNotFoundException(MessageCodes.messages.get(221)));
+
+        if(post.getImageURL()!=null){
+               String oldKey=post.getImageURL().substring(post.getImageURL().lastIndexOf("/")+1);
+               s3Client.deleteObject(DeleteObjectRequest.builder().bucket(bucketName).key(oldKey).build());
+        }
+
+        post.setImageURL(imageUrl);
+        postRepository.save(post);
+
+        ApiResponse<String> apiResponse=ApiResponse.<String>success(HttpStatus.OK.value(), null, "Image URL saved successfully");
+        return new ResponseEntity<>(apiResponse,HttpStatus.OK);
       }
 
        //publish a post if not published
