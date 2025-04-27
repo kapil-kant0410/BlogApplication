@@ -37,24 +37,23 @@ public class AuthorSubscriptionService {
     }
 
     //working properly subscribe to an author
-    public ResponseEntity<ApiResponse<String>> subscribeToAuthor(AuthorSubscriptionRequestDto authorSubscriptionRequestDto){
+    public ResponseEntity<ApiResponse<Map<String,String>>> subscribeToAuthor(AuthorSubscriptionRequestDto authorSubscriptionRequestDto){
 
         String token= TokenContext.getToken();
-        Long id= Long.parseLong(jwtUtil.extractId(token));
+        Long userId= Long.parseLong(jwtUtil.extractId(token));
 
-        User user=userRepository.findById(id).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(201)));
+        User user=userRepository.findById(userId).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(201)));
         User author=userRepository.findById(authorSubscriptionRequestDto.getAuthorId()).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(201)));
 
-
         if(Objects.equals(user.getId(), author.getId())){
-            ApiResponse<String> apiResponse=ApiResponse.error(HttpStatus.BAD_REQUEST.value(), "Invalid Operation","A user cannot subscribe to themselves.");
+            ApiResponse<Map<String,String>> apiResponse=ApiResponse.error(HttpStatus.BAD_REQUEST.value(), null,"A user cannot subscribe to themselves.");
             return new ResponseEntity<>(apiResponse,HttpStatus.BAD_REQUEST);
         }
 
-        Optional<AuthorSubscription> authorSubscriptionOptional=authorSubscriptionRepository.findByUserIdAndAuthorId(id, authorSubscriptionRequestDto.getAuthorId());
+        Optional<AuthorSubscription> authorSubscriptionOptional=authorSubscriptionRepository.findByUserIdAndAuthorId(userId, authorSubscriptionRequestDto.getAuthorId());
 
         if(authorSubscriptionOptional.isPresent()){
-            ApiResponse<String> apiResponse=ApiResponse.error(HttpStatus.BAD_REQUEST.value(), "Already subscribed","Already subscribed to author");
+            ApiResponse<Map<String,String>> apiResponse=ApiResponse.error(HttpStatus.BAD_REQUEST.value(), null,"Already subscribed to this author");
             return new ResponseEntity<>(apiResponse,HttpStatus.BAD_REQUEST);
         }
 
@@ -63,7 +62,7 @@ public class AuthorSubscriptionService {
         boolean isAuthor=authorRoles.stream().anyMatch(userRole -> "author".equalsIgnoreCase(userRole.getRole().getName()));
 
         if(!isAuthor){
-            ApiResponse<String> apiResponse=ApiResponse.error(HttpStatus. FORBIDDEN.value(), "Not an author","Not an author");
+            ApiResponse<Map<String,String>> apiResponse=ApiResponse.error(HttpStatus. FORBIDDEN.value(), null,"Author id not an author");
             return new ResponseEntity<>(apiResponse,HttpStatus.FORBIDDEN);
         }
 
@@ -73,13 +72,13 @@ public class AuthorSubscriptionService {
 
         authorSubscriptionRepository.save(authorSubscription);
 
-        ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(), MessageCodes.messages.get(161),MessageCodes.messages.get(161));
+        ApiResponse<Map<String,String>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),Collections.emptyMap(),MessageCodes.messages.get(161));
         return new ResponseEntity<>(apiResponse,HttpStatus.OK);
     }
 
     //working properly to unsubscribe an author
     @Transactional
-    public ResponseEntity<ApiResponse<String>> unsubscribeFromAuthor(AuthorSubscriptionRequestDto authorSubscriptionRequestDto){
+    public ResponseEntity<ApiResponse<Map<String,String>>> unsubscribeFromAuthor(AuthorSubscriptionRequestDto authorSubscriptionRequestDto){
 
         String token= TokenContext.getToken();
         Long userId= Long.parseLong(jwtUtil.extractId(token));
@@ -89,18 +88,18 @@ public class AuthorSubscriptionService {
         Optional<AuthorSubscription> optionalAuthorSubscription=authorSubscriptionRepository.findByUserIdAndAuthorId(userId, authorSubscriptionRequestDto.getAuthorId());
 
         if(optionalAuthorSubscription.isEmpty()){
-            ApiResponse<String> apiResponse=ApiResponse.error(HttpStatus.NOT_FOUND.value(), "No relation between user and author","No relation");
+            ApiResponse<Map<String,String>> apiResponse=ApiResponse.error(HttpStatus.NOT_FOUND.value(), null,"No relation between user and author");
             return new ResponseEntity<>(apiResponse,HttpStatus.NOT_FOUND);
         }
 
         authorSubscriptionRepository.delete(optionalAuthorSubscription.get());
 
-        ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(), MessageCodes.messages.get(162),MessageCodes.messages.get(162));
+        ApiResponse<Map<String,String>> apiResponse=ApiResponse.success(HttpStatus.OK.value(), Collections.emptyMap(),MessageCodes.messages.get(162));
         return new ResponseEntity<>(apiResponse,HttpStatus.OK);
     }
 
     //working properly getting user subscribed authors
-    public ResponseEntity<ApiResponse<List<UserSubscribedAuthorResponseDto>>> getUserSubscriptions(){
+    public ResponseEntity<ApiResponse<Map<String,List<UserSubscribedAuthorResponseDto>>>> getUserSubscriptions(){
 
         String token= TokenContext.getToken();
         Long id= Long.parseLong(jwtUtil.extractId(token));
@@ -111,12 +110,15 @@ public class AuthorSubscriptionService {
 
         List<UserSubscribedAuthorResponseDto> authorSubscriptionResponseDtoList= SubscriptionsMapper.toDtoList(subscribedAuthors);
 
-        ApiResponse<List<UserSubscribedAuthorResponseDto>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),authorSubscriptionResponseDtoList,MessageCodes.messages.get(163));
+        Map<String,List<UserSubscribedAuthorResponseDto>> data=new HashMap<>();
+        data.put("User/Author all subscribed authors",authorSubscriptionResponseDtoList);
+
+        ApiResponse< Map<String,List<UserSubscribedAuthorResponseDto>> > apiResponse=ApiResponse.success(HttpStatus.OK.value(),data,MessageCodes.messages.get(163));
         return new ResponseEntity<>(apiResponse,HttpStatus.OK);
     }
 
     //working properly getting author subscribers
-    public ResponseEntity<ApiResponse<List<AuthorSubscribersResponseDto>>> getAuthorSubscribers(Long id){
+    public ResponseEntity<ApiResponse< Map<String,List<AuthorSubscribersResponseDto>>  >> getAuthorSubscribers(Long id){
 
         User user=userRepository.findById(id).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(201)));
 
@@ -124,19 +126,22 @@ public class AuthorSubscriptionService {
                 .anyMatch(userRole -> "author".equalsIgnoreCase(userRole.getRole().getName()));
 
         if(!isAuthor){
-            ApiResponse<List<AuthorSubscribersResponseDto>> apiResponse=ApiResponse.error(HttpStatus.BAD_REQUEST.value(), Collections.emptyList(),"Provide user is not an author");
+            ApiResponse<Map<String,List<AuthorSubscribersResponseDto>>> apiResponse=ApiResponse.error(HttpStatus.BAD_REQUEST.value(), null,"Provide user is not an author");
             return new ResponseEntity<>(apiResponse,HttpStatus.BAD_REQUEST);
         }
 
         Set<AuthorSubscription> authorSubscribers= user.getSubscribers();
         List<AuthorSubscribersResponseDto> authorSubscribersList= SubscriberMapper.toDtoList(authorSubscribers);
 
-        ApiResponse<List<AuthorSubscribersResponseDto>> apiResponse=ApiResponse.success(HttpStatus.OK.value(), authorSubscribersList,MessageCodes.messages.get(164));
+        Map<String,List<AuthorSubscribersResponseDto>> data=new HashMap<>();
+        data.put("Author all subscribers",authorSubscribersList);
+
+        ApiResponse<Map<String,List<AuthorSubscribersResponseDto>>> apiResponse=ApiResponse.success(HttpStatus.OK.value(), data,MessageCodes.messages.get(164));
         return new ResponseEntity<>(apiResponse,HttpStatus.OK);
     }
 
     //working properly return count of subscribed users for an author
-    public ResponseEntity<ApiResponse<Integer>> getSubscribersCount(Long id){
+    public ResponseEntity<ApiResponse<Map<String,Integer>>> getSubscribersCount(Long id){
 
         User user=userRepository.findById(id).orElseThrow(()-> new UserNotFoundException(MessageCodes.messages.get(201)));
 
@@ -144,13 +149,15 @@ public class AuthorSubscriptionService {
                 .anyMatch(userRole -> "author".equalsIgnoreCase(userRole.getRole().getName()));
 
         if(!isAuthor){
-            ApiResponse<Integer> apiResponse=ApiResponse.error(HttpStatus.BAD_REQUEST.value(), 0,"Provided user is not an author");
+            ApiResponse<Map<String,Integer>> apiResponse=ApiResponse.error(HttpStatus.BAD_REQUEST.value(), null,"Provided user is not an author");
             return new ResponseEntity<>(apiResponse,HttpStatus.BAD_REQUEST);
         }
 
         Set<AuthorSubscription> authorSubscribers= user.getSubscribers();
+        Map<String,Integer> data=new HashMap<>();
+        data.put("All subscribers count",authorSubscribers.size());
 
-        ApiResponse<Integer> apiResponse=ApiResponse.success(HttpStatus.OK.value(), authorSubscribers.size(),"All subscribers count");
+        ApiResponse<Map<String,Integer>> apiResponse=ApiResponse.success(HttpStatus.OK.value(), data,"All subscribers count");
         return new ResponseEntity<>(apiResponse,HttpStatus.OK);
     }
 

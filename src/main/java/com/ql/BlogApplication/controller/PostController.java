@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/post")
@@ -24,43 +25,43 @@ public class PostController {
 
 
        @GetMapping("/all")
-       ResponseEntity<ApiResponse<List<PostResponseDto>>> getAllPosts(){
+       ResponseEntity<ApiResponse<Map<String,List<PostResponseDto>>>> getAllPosts(){
                 return postService.getAllPosts();
        }
 
        @PostMapping("/create")
-       ResponseEntity<ApiResponse<String>> createPost(@Valid @RequestBody PostRequestDto postRequestDto) {
+       ResponseEntity<ApiResponse<Map<String,PostResponseDto>>> createPost(@Valid @RequestBody PostRequestDto postRequestDto) {
            return postService.createPost(postRequestDto);
        }
 
        @PostMapping("/upload-image/{id}")
-       ResponseEntity<ApiResponse<String>> uploadImage(@PathVariable Long id,@RequestParam("file") MultipartFile multipartFile){
+       ResponseEntity<ApiResponse<Map<String,PostResponseDto>>> uploadImage(@PathVariable Long id,@RequestParam("file") MultipartFile multipartFile){
           return postService.uploadImage(id,multipartFile);
        }
 
        @PostMapping("/generate-presignedUrl")
-       ResponseEntity<ApiResponse<String>>  generatePreSignedUrl(@Valid @RequestBody GeneratePresignedUrlDto generatePresignedUrlDto ){
+       ResponseEntity<ApiResponse<Map<String,String>>>  generatePreSignedUrl(@Valid @RequestBody GeneratePresignedUrlDto generatePresignedUrlDto ){
           return postService.generatePreSignedUrl(generatePresignedUrlDto.getFileName(),generatePresignedUrlDto.getContentType());
        }
 
        @PostMapping("confirm-image-upload/{postId}")
-       ResponseEntity<ApiResponse<String>>  confirmImageUpload(@PathVariable Long postId, @Valid @RequestBody ConfirmImageUploadDto confirmImageUploadDto){
+       ResponseEntity<ApiResponse<Map<String,PostResponseDto>>>  confirmImageUpload(@PathVariable Long postId, @Valid @RequestBody ConfirmImageUploadDto confirmImageUploadDto){
            return postService.confirmImageUpload(postId,confirmImageUploadDto.getImageUrl());
        }
 
        @GetMapping("/{category}")
-       ResponseEntity<ApiResponse<List<PostResponseDto>>> findAllPostByCategory(@PathVariable String category){
+       ResponseEntity<ApiResponse<Map<String,List<PostResponseDto>>  >> findAllPostByCategory(@PathVariable String category){
                return postService.findAllPostByCategory(category);
        }
 
        @PutMapping("/publish/{id}")
-       ResponseEntity<ApiResponse<String>> publishPost(@PathVariable Long id){
+       ResponseEntity<ApiResponse<Map<String,PostResponseDto>>> publishPost(@PathVariable Long id){
             return postService.publishPost(id);
        }
 
 
        @GetMapping("/getAllComments/{id}")
-       ResponseEntity<ApiResponse<List<CommentResponseDto>>> findAllCommentByPostId(@PathVariable Long id){
+       ResponseEntity<ApiResponse<Map<String,List<CommentResponseDto>>>> findAllCommentByPostId(@PathVariable Long id){
                return postService.findAllCommentByPostId(id);
        }
 

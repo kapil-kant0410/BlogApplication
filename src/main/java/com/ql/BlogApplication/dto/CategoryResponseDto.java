@@ -7,7 +7,6 @@ import lombok.Setter;
 @Getter
 @Setter
 @Builder
-public class CommentResponseDto {
+public class CategoryResponseDto {
      private String name;
-     private String content;
 }

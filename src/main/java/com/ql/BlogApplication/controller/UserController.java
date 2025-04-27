@@ -1,6 +1,6 @@
 package com.ql.BlogApplication.controller;
+
 import com.ql.BlogApplication.dto.*;
-import com.ql.BlogApplication.entity.User;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.ql.BlogApplication.service.UserService;
 import java.util.List;
+import java.util.Map;
 
 
 @RestController
@@ -21,33 +22,31 @@ public class UserController {
      private final UserService userService;
 
      @GetMapping("/all")
-     public ResponseEntity<ApiResponse<List<UserResponseDto>>> getAllUsers(){
+     public ResponseEntity<ApiResponse<Map<String,List<UserResponseDto> >>> getAllUsers(){
           logger.info("Fetching all users.");
           return userService.getAllUsers();
      }
 
      @GetMapping("/{id}")
-     public ResponseEntity<ApiResponse<UserResponseDto>> getUserById(@PathVariable Long id){
+     public ResponseEntity<ApiResponse<Map<String,UserResponseDto>>> getUserById(@PathVariable Long id){
          logger.info("Fetching user with ID: {}", id);
          return userService.getUserById(id);
      }
 
      @DeleteMapping("/delete")
-     public ResponseEntity<ApiResponse<String>> deleteUserById(){
+     public ResponseEntity<ApiResponse<Map<String,UserResponseDto>>> deleteUserById(){
         logger.info("Deleting user");
-        ResponseEntity<ApiResponse<String>> response= userService.deleteUserById();
-        logger.info("User with ID deleted");
-        return response;
+        return userService.deleteUserById();
     }
 
      @PutMapping("/update")
-     public ResponseEntity<ApiResponse<String>> updateUserByID(@Valid @RequestBody UserUpdateRequestDto userUpdateRequestDto){
+     public ResponseEntity<ApiResponse<Map<String,UserResponseDto>>> updateUserByID(@Valid @RequestBody UserUpdateRequestDto userUpdateRequestDto){
          logger.info("Updating user with  Name: {}", userUpdateRequestDto.getName());
          return userService.updateUserByID(userUpdateRequestDto);
      }
 
      @PostMapping("/addRole")
-     public ResponseEntity<ApiResponse<String>> addUserRoleById(@Valid @RequestBody RoleRequestDto roleRequestDto){
+     public ResponseEntity<ApiResponse<Map<String,UserResponseDto>>> addUserRoleById(@Valid @RequestBody RoleRequestDto roleRequestDto){
          return  userService.addUserRoleById(roleRequestDto);
      }
 

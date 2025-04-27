@@ -1,4 +1,5 @@
 package com.ql.BlogApplication.service;
+
 import com.ql.BlogApplication.constant.MessageCodes;
 import com.ql.BlogApplication.dto.ApiResponse;
 import com.ql.BlogApplication.dto.CommentLikeRequestDto;
@@ -8,20 +9,20 @@ import com.ql.BlogApplication.entity.Like;
 import com.ql.BlogApplication.exception.CommentNotFoundException;
 import com.ql.BlogApplication.exception.PostNotFoundException;
 import com.ql.BlogApplication.exception.UserNotFoundException;
-import com.ql.BlogApplication.interceptor.AuthorInterceptor;
 import com.ql.BlogApplication.repository.CommentRepository;
 import com.ql.BlogApplication.repository.LikeRepository;
 import com.ql.BlogApplication.repository.PostRepository;
 import com.ql.BlogApplication.repository.UserRepository;
 import com.ql.BlogApplication.util.JwtUtil;
 import com.ql.BlogApplication.util.TokenContext;
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import com.ql.BlogApplication.entity.User;
 import com.ql.BlogApplication.entity.Post;
 
+import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -31,34 +32,36 @@ public class LikeService {
    private final PostRepository postRepository;
    private final LikeRepository likeRepository;
    private final CommentRepository commentRepository;
-   private final AuthorInterceptor authorInterceptor;
    private final JwtUtil jwtUtil;
-   private final HttpServletRequest httpServletRequest;
 
-    LikeService(UserRepository userRepository,PostRepository postRepository,LikeRepository likeRepository,CommentRepository commentRepository,AuthorInterceptor authorInterceptor,JwtUtil jwtUtil,HttpServletRequest httpServletRequest){
+
+    LikeService(UserRepository userRepository,PostRepository postRepository,LikeRepository likeRepository,CommentRepository commentRepository,JwtUtil jwtUtil){
         this.userRepository=userRepository;
         this.postRepository=postRepository;
         this.likeRepository=likeRepository;
         this.commentRepository=commentRepository;
-        this.authorInterceptor=authorInterceptor;
         this.jwtUtil=jwtUtil;
-        this.httpServletRequest=httpServletRequest;
     }
 
     //working properly like and unlike a post on same endpoint
-    public ResponseEntity<ApiResponse<String>> likeAPost(PostLikeRequestDto postLikeRequestDto){
+    public ResponseEntity<ApiResponse<Map<String,String>>> likeAPost(PostLikeRequestDto postLikeRequestDto){
 
         String token= TokenContext.getToken();
-        Long id= Long.parseLong(jwtUtil.extractId(token));
+        Long userId= Long.parseLong(jwtUtil.extractId(token));
 
-        User user=userRepository.findById(id).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(201)));
+        User user=userRepository.findById(userId).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(201)));
         Post post=postRepository.findById(postLikeRequestDto.getPostId()).orElseThrow(()->new PostNotFoundException(MessageCodes.messages.get(221)));
 
-        Optional<Like> optionalLike=likeRepository.findByUserIdAndPostId(id, postLikeRequestDto.getPostId());
+        if(post.getIsPublished()==Boolean.FALSE){
+            ApiResponse<Map<String,String>> apiResponse=ApiResponse.error(HttpStatus.BAD_REQUEST.value(),null,"Can not like a unpublished post");
+            return new ResponseEntity<>(apiResponse,HttpStatus.BAD_REQUEST);
+        }
+
+        Optional<Like> optionalLike=likeRepository.findByUserIdAndPostId(userId, postLikeRequestDto.getPostId());
 
         if(optionalLike.isPresent()){
             likeRepository.delete(optionalLike.get());
-            ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(), MessageCodes.messages.get(152),MessageCodes.messages.get(152));
+            ApiResponse<Map<String,String>> apiResponse=ApiResponse.success(HttpStatus.OK.value(), Collections.emptyMap(),MessageCodes.messages.get(152));
             return new ResponseEntity<>(apiResponse,HttpStatus.OK);
         }
 
@@ -68,24 +71,24 @@ public class LikeService {
 
         likeRepository.save(likeAPost);
 
-        ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(), MessageCodes.messages.get(151),MessageCodes.messages.get(151));
+        ApiResponse<Map<String,String>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),Collections.emptyMap(),MessageCodes.messages.get(151));
         return new ResponseEntity<>(apiResponse,HttpStatus.OK);
     }
 
     //working properly like and unlike a comment on same endpoint
-    public ResponseEntity<ApiResponse<String>> likeAComment(CommentLikeRequestDto commentLikeRequestDto){
+    public ResponseEntity<ApiResponse<Map<String,String>>> likeAComment(CommentLikeRequestDto commentLikeRequestDto){
 
         String token=TokenContext.getToken();
-        Long id= Long.parseLong(jwtUtil.extractId(token));
+        Long userId= Long.parseLong(jwtUtil.extractId(token));
 
-        User user=userRepository.findById(id).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(201)));
+        User user=userRepository.findById(userId).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(201)));
         Comment comment=commentRepository.findById(commentLikeRequestDto.getCommentId()).orElseThrow(()-> new CommentNotFoundException(MessageCodes.messages.get(241)));
 
-        Optional<Like> optionalLike=likeRepository.findByUserIdAndCommentId(id, commentLikeRequestDto.getCommentId());
+        Optional<Like> optionalLike=likeRepository.findByUserIdAndCommentId(userId, commentLikeRequestDto.getCommentId());
 
         if(optionalLike.isPresent()){
             likeRepository.delete(optionalLike.get());
-            ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(), MessageCodes.messages.get(152),MessageCodes.messages.get(152));
+            ApiResponse<Map<String,String>> apiResponse=ApiResponse.success(HttpStatus.OK.value(), Collections.emptyMap(),MessageCodes.messages.get(152));
             return new ResponseEntity<>(apiResponse,HttpStatus.OK);
         }
 
@@ -95,7 +98,7 @@ public class LikeService {
 
         likeRepository.save(like);
 
-        ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(), MessageCodes.messages.get(154),MessageCodes.messages.get(154));
+        ApiResponse<Map<String,String>> apiResponse=ApiResponse.success(HttpStatus.OK.value(), Collections.emptyMap(),MessageCodes.messages.get(154));
         return new ResponseEntity<>(apiResponse,HttpStatus.OK);
     }
 

@@ -2,7 +2,6 @@ package com.ql.BlogApplication.mapper;
 
 import com.ql.BlogApplication.dto.CommentResponseDto;
 import com.ql.BlogApplication.dto.PostResponseDto;
-import com.ql.BlogApplication.entity.Comment;
 import com.ql.BlogApplication.entity.Post;
 import org.springframework.stereotype.Component;
 
@@ -11,21 +10,26 @@ import java.util.List;
 @Component
 public class PostMapper {
 
-    public static List<CommentResponseDto> addComments(Post post){
-                return post.getComments().stream().map(CommentMapper::toDto).toList();
+    private final CommentMapper commentMapper;
+
+    public PostMapper(CommentMapper commentMapper){
+        this.commentMapper=commentMapper;
     }
 
-    public static List<PostResponseDto> toDtoList(List<Post> allPosts){
-          return  allPosts.stream().map(post -> {
-                return  PostResponseDto.builder()
-                      .title(post.getTitle())
-                      .content(post.getContent())
-                        .commentList(addComments(post))
-                      .build();
-          }).toList();
+    public  List<CommentResponseDto> addComments(Post post){
+                return post.getComments().stream().map(commentMapper::toDto).toList();
     }
 
-    public static  PostResponseDto toDto(Post post){
+    public  List<PostResponseDto> toDtoList(List<Post> allPosts){
+          return  allPosts.stream().map(post -> PostResponseDto.builder()
+                                                    .title(post.getTitle())
+                                                    .content(post.getContent())
+                                                    .commentList(addComments(post))
+                                                    .build()
+                                      ).toList();
+    }
+
+    public  PostResponseDto toDto(Post post){
         return  PostResponseDto.builder()
                 .title(post.getTitle())
                 .content(post.getContent())

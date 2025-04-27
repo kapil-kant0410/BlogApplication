@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.stereotype.Service;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -58,9 +59,7 @@ public class AuthService {
       public ResponseEntity<ApiResponse<Map<String,String>>> registerUser(UserRegisterRequestDto userRequestDto){
 
         if(userRepository.existsByEmail(userRequestDto.getEmail())){
-            Map<String,String> errors=new HashMap<>();
-            errors.put("validation error","email already exists");
-            ApiResponse<Map<String,String>> apiResponse=  ApiResponse.<Map<String,String>>error(HttpStatus.CONFLICT.value(), errors,"Email already exists.");
+            ApiResponse<Map<String,String>> apiResponse=  ApiResponse.<Map<String,String>>error(HttpStatus.CONFLICT.value(), null,"Email already exists.");
             return new ResponseEntity<>(apiResponse, HttpStatus.CONFLICT);
         }
 
@@ -90,9 +89,7 @@ public class AuthService {
              String requestPassword=authRequestDto.getPassword();
 
              if(!Objects.equals(dataBasePassword, requestPassword)){
-                 Map<String,String> errors=new HashMap<>();
-                 errors.put("error","Password mismatched");
-                 ApiResponse<Map<String,String>> apiResponse=ApiResponse.error(HttpStatus.UNAUTHORIZED.value(), errors,"password mismatched");
+                 ApiResponse<Map<String,String>> apiResponse=ApiResponse.error(HttpStatus.UNAUTHORIZED.value(), null,"password mismatched");
                  return new ResponseEntity<>(apiResponse,HttpStatus.UNAUTHORIZED);
              }
 
@@ -105,27 +102,37 @@ public class AuthService {
 
       public ResponseEntity<ApiResponse<Map<String,String>>> generateOtp(OtpGenerationRequestDto otpGenerationRequestDto){
 
-           userRepository.findByEmail(otpGenerationRequestDto.getEmail()).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(201)));
+          try{
+              userRepository.findByEmail(otpGenerationRequestDto.getEmail()).orElseThrow(()->new UserNotFoundException(MessageCodes.messages.get(201)));
 
-           String otp=String.valueOf(random.nextInt(900000)+100000);
+              String otp=String.valueOf(random.nextInt(900000)+100000);
 
-           Otp otpEntity=new Otp();
-           otpEntity.setEmail(otpGenerationRequestDto.getEmail());
-           otpEntity.setOtp(otp);
-           otpEntity.setGeneratedAt(LocalDateTime.now());
+              Otp otpEntity=new Otp();
+              otpEntity.setEmail(otpGenerationRequestDto.getEmail());
+              otpEntity.setOtp(otp);
+              otpEntity.setGeneratedAt(LocalDateTime.now());
 
-           otpRepository.save(otpEntity);
+              otpRepository.save(otpEntity);
 
-           SimpleMailMessage simpleMailMessage=new SimpleMailMessage();
-           simpleMailMessage.setTo(otpGenerationRequestDto.getEmail());
-           simpleMailMessage.setSubject(otpSubject);
-           simpleMailMessage.setText(String.format(otpMessage,otp));
+              SimpleMailMessage simpleMailMessage=new SimpleMailMessage();
+              simpleMailMessage.setTo(otpGenerationRequestDto.getEmail());
+              simpleMailMessage.setSubject(otpSubject);
+              simpleMailMessage.setText(String.format(otpMessage,otp));
 
-           javaMailSender.send(simpleMailMessage);
+              javaMailSender.send(simpleMailMessage);
 
 
-           ApiResponse<Map<String,String>> apiResponse=ApiResponse.success(HttpStatus.OK.value(), Collections.emptyMap(),"Otp send successfully");
-           return new ResponseEntity<>(apiResponse,HttpStatus.OK);
+              ApiResponse<Map<String,String>> apiResponse=ApiResponse.success(HttpStatus.OK.value(), Collections.emptyMap(),"Otp send successfully");
+              return new ResponseEntity<>(apiResponse,HttpStatus.OK);
+          }catch(MailException e){
+              ApiResponse<Map<String, String>> apiResponse = ApiResponse.error(
+                      HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                       null,
+                      "An unexpected mail exception during otp generation"
+              );
+              return new ResponseEntity<>(apiResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+          }
+
       }
 
       public ResponseEntity<ApiResponse<Map<String,String>>> validateOtp(OtpValidationRequestDto otpValidationRequestDto){

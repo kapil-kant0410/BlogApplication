@@ -22,9 +22,6 @@ public class PostRequestDto {
     @NotNull(message = "Published status must not be empty")
     private Boolean isPublished;
 
-    @NotNull(message = "ImageUrl can not be null")
-    private String imageUrl;
-
     @NotNull(message = "Category ID must not be null")
     @Positive(message = "Category ID must be a positive number")
     private Long categoryId;

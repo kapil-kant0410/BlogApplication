@@ -1,6 +1,5 @@
 package com.ql.BlogApplication.dto;
 
-import com.ql.BlogApplication.entity.Comment;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;

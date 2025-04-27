@@ -31,10 +31,11 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
-import software.amazon.awssdk.regions.Region;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 
@@ -47,7 +48,9 @@ public class PostService {
       private final JwtUtil jwtUtil;
       private final S3Client s3Client;
       private final S3Presigner s3Presigner;
-      private static final Logger logger = LoggerFactory.getLogger(PostService.class);
+      private final CommentMapper commentMapper;
+      private final PostMapper postMapper;
+      private  final Logger logger = LoggerFactory.getLogger(PostService.class);
 
       @Value("${aws.s3.bucket}")
        private String bucketName;
@@ -56,49 +59,58 @@ public class PostService {
       private String awsRegion;
 
 
-    PostService(S3Presigner s3Presigner,S3Client s3Client,PostRepository postRepository, UserRepository userRepository, CategoryRepository categoryRepository, JwtUtil jwtUtil){
+    PostService(PostMapper postMapper,CommentMapper commentMapper,S3Presigner s3Presigner,S3Client s3Client,PostRepository postRepository, UserRepository userRepository, CategoryRepository categoryRepository, JwtUtil jwtUtil){
           this.postRepository=postRepository;
           this.userRepository=userRepository;
           this.categoryRepository=categoryRepository;
           this.jwtUtil=jwtUtil;
           this.s3Client=s3Client;
           this.s3Presigner=s3Presigner;
-      }
+          this.commentMapper=commentMapper;
+          this.postMapper=postMapper;
+    }
 
        //working fine getting all post
-       public ResponseEntity<ApiResponse<List<PostResponseDto>>> getAllPosts(){
+       public ResponseEntity<ApiResponse< Map<String,List<PostResponseDto>> >> getAllPosts(){
 
           List<Post> allPosts=postRepository.findByIsPublishedTrue();
-          List<PostResponseDto> postResponseDtoList=PostMapper.toDtoList(allPosts);
+          List<PostResponseDto> postResponseDtoList=postMapper.toDtoList(allPosts);
 
-          ApiResponse<List<PostResponseDto>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),postResponseDtoList,"Posts fetched successfully.");
+           Map<String,List<PostResponseDto>> data=new HashMap<>();
+           data.put("All posts",postResponseDtoList);
+
+          ApiResponse< Map<String,List<PostResponseDto>> > apiResponse=ApiResponse.success(HttpStatus.OK.value(),data,"Posts fetched successfully.");
           return new ResponseEntity<>(apiResponse,HttpStatus.OK);
 
       }
 
        //working fine check for same post
-       public ResponseEntity<ApiResponse<String>> createPost(PostRequestDto postRequestDto) {
+       public ResponseEntity<ApiResponse< Map<String,PostResponseDto> >> createPost(PostRequestDto postRequestDto) {
 
           Category category=categoryRepository.findById(postRequestDto.getCategoryId()).orElseThrow(()-> new CategoryNotFoundException(MessageCodes.messages.get(231)));
 
-          Post newPost=new Post();
-          newPost.setTitle(postRequestDto.getTitle());
-          newPost.setContent(postRequestDto.getContent());
-          newPost.setImageURL(postRequestDto.getImageUrl());
+           Post post=new Post();
+           post.setTitle(postRequestDto.getTitle());
+           post.setContent(postRequestDto.getContent());
 
           String token= TokenContext.getToken();
-          Long id= Long.parseLong(jwtUtil.extractId(token));
-          User user=userRepository.findById(id).orElseThrow(()-> new UserNotFoundException(MessageCodes.messages.get(201)));
-          newPost.setAuthor(user);
-          newPost.setCategory(category);
-          postRepository.save(newPost);
+          Long userId= Long.parseLong(jwtUtil.extractId(token));
+          User user=userRepository.findById(userId).orElseThrow(()-> new UserNotFoundException(MessageCodes.messages.get(201)));
+          post.setAuthor(user);
+          post.setCategory(category);
+          postRepository.save(post);
 
-          ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(),MessageCodes.messages.get(121),MessageCodes.messages.get(121));
+          PostResponseDto postResponseDto=postMapper.toDto(post);
+
+           Map<String,PostResponseDto> data=new HashMap<>();
+           data.put("Post Created",postResponseDto);
+
+          ApiResponse<Map<String,PostResponseDto>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),data,MessageCodes.messages.get(121));
           return new ResponseEntity<>(apiResponse,HttpStatus.OK);
       }
 
        //uploading image in s3 bucket
-       public ResponseEntity<ApiResponse<String>> uploadImage(Long id,MultipartFile multipartFile) {
+       public ResponseEntity<ApiResponse<Map<String,PostResponseDto>>> uploadImage(Long id,MultipartFile multipartFile) {
 
         try{
 
@@ -125,20 +137,24 @@ public class PostService {
             post.setImageURL(imageUrl);
 
             postRepository.save(post);
-            logger.info("Image saved successfully");
 
+            PostResponseDto postResponseDto=postMapper.toDto(post);
+
+            Map<String,PostResponseDto> data=new HashMap<>();
+            data.put("Post",postResponseDto);
+
+            ApiResponse<Map<String,PostResponseDto>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),data,"image uploaded successfully");
+            return new ResponseEntity<>(apiResponse,HttpStatus.OK);
         }catch (IOException ioException){
             logger.error("error while uploading image on s3");
-            ApiResponse<String> apiResponse=ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR.value(),"Internal server error","internal server error");
+            ApiResponse<Map<String,PostResponseDto>> apiResponse=ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR.value(),null,"internal server error");
             return new ResponseEntity<>(apiResponse,HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
-          ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(),"image uploaded successfully","image uploaded successfully");
-          return new ResponseEntity<>(apiResponse,HttpStatus.OK);
       }
 
       //generating presigned url for uploading image
-       public ResponseEntity<ApiResponse<String>> generatePreSignedUrl(String fileName,String contentType){
+       public ResponseEntity<ApiResponse<Map<String,String>>> generatePreSignedUrl(String fileName,String contentType){
            try{
                String uniqueFilename = UUID.randomUUID() + "_" + fileName;
                PutObjectRequest putObjectRequest = PutObjectRequest.builder()
@@ -155,17 +171,19 @@ public class PostService {
 
                PresignedPutObjectRequest presignedRequest = s3Presigner.presignPutObject(presignRequest);
 
-               ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(), presignedRequest.url().toString(), "PreSigned URL generated successfully");
+               Map<String,String> data=new HashMap<>();
+               data.put("Pre_signed_url",presignedRequest.url().toString());
+
+               ApiResponse<Map<String,String>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),data, "PreSigned URL generated successfully");
                return new ResponseEntity<>(apiResponse,HttpStatus.OK);
            }catch (Exception e) {
-               e.printStackTrace();
-               ApiResponse<String> apiResponse=ApiResponse.error(HttpStatus.OK.value(), null, "Failed to generate PreSigned URL");
+               ApiResponse<Map<String,String>> apiResponse=ApiResponse.error(HttpStatus.OK.value(), null, "Failed to generate PreSigned URL");
                return new ResponseEntity<>(apiResponse,HttpStatus.OK);
            }
        }
 
        //confirmed upload from presigned url and save to db
-       public ResponseEntity<ApiResponse<String>> confirmImageUpload(Long postId,String imageUrl) {
+       public ResponseEntity<ApiResponse<Map<String,PostResponseDto>>> confirmImageUpload(Long postId,String imageUrl) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new PostNotFoundException(MessageCodes.messages.get(221)));
 
@@ -177,58 +195,71 @@ public class PostService {
         post.setImageURL(imageUrl);
         postRepository.save(post);
 
-        ApiResponse<String> apiResponse=ApiResponse.<String>success(HttpStatus.OK.value(), null, "Image URL saved successfully");
+        PostResponseDto postResponseDto=postMapper.toDto(post);
+
+        Map<String,PostResponseDto> data=new HashMap<>();
+        data.put("Image_uploaded_on_post",postResponseDto);
+
+        ApiResponse<Map<String,PostResponseDto>> apiResponse=ApiResponse.success(HttpStatus.OK.value(), data, "Image URL saved successfully");
         return new ResponseEntity<>(apiResponse,HttpStatus.OK);
       }
 
        //publish a post if not published
-       public ResponseEntity<ApiResponse<String>> publishPost(Long id){
+       public ResponseEntity<ApiResponse<Map<String,PostResponseDto>>> publishPost(Long postId){
 
         String token= TokenContext.getToken();
         Long userId= Long.parseLong(jwtUtil.extractId(token));
 
-        Post post=postRepository.findByAuthorIdAndId(userId,id).orElseThrow(()-> new PostNotFoundException(MessageCodes.messages.get(221)));
+        Post post=postRepository.findByAuthorIdAndId(userId,postId).orElseThrow(()-> new PostNotFoundException(MessageCodes.messages.get(221)));
+        PostResponseDto postResponseDto=postMapper.toDto(post);
+        Map<String,PostResponseDto> data=new HashMap<>();
 
         if(post.getIsPublished()==Boolean.TRUE){
             post.setIsPublished(false);
             postRepository.save(post);
-            ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(),"Post unpublish successfully", "Post unpublish successfully");
+            data.put("Unpublished_post",postResponseDto);
+            ApiResponse<Map<String,PostResponseDto>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),data, "Post unpublish successfully");
             return new ResponseEntity<>(apiResponse,HttpStatus.OK);
         }
 
         post.setIsPublished(true);
         postRepository.save(post);
-
-        ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(),"Post published successfully", "Post published successfully");
+        data.put("Published_post",postResponseDto);
+        ApiResponse<Map<String,PostResponseDto>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),data, "Post published successfully");
         return new ResponseEntity<>(apiResponse,HttpStatus.OK);
     }
 
        //working fine getting all post under a category
-       public ResponseEntity<ApiResponse<List<PostResponseDto>>> findAllPostByCategory(String category){
+       public ResponseEntity<ApiResponse<Map<String,List<PostResponseDto>>>> findAllPostByCategory(String category){
 
             List<Post> allPosts=postRepository.findByIsPublishedTrue();
 
             List<Post> filterPosts= allPosts.stream().filter(post->post.getCategory().getName().equals(category)).toList();
+            List<PostResponseDto>  postResponseDtoList = postMapper.toDtoList(filterPosts);
 
-            List<PostResponseDto>  postResponseDtoList = PostMapper.toDtoList(filterPosts);
+            Map<String,List<PostResponseDto>> data=new HashMap<>();
+            data.put("All_post_by_category",postResponseDtoList);
 
-            ApiResponse<List<PostResponseDto>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),postResponseDtoList,"All posts inside category");
+            ApiResponse< Map<String,List<PostResponseDto>>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),data,"All posts inside category");
             return new ResponseEntity<>(apiResponse,HttpStatus.OK);
       }
 
        //working fine getting all comment list under a post
-       public ResponseEntity<ApiResponse<List<CommentResponseDto>>> findAllCommentByPostId(Long id){
+       public ResponseEntity<ApiResponse<Map<String,List<CommentResponseDto>>>> findAllCommentByPostId(Long postId){
 
           String token= TokenContext.getToken();
           Long userId= Long.parseLong(jwtUtil.extractId(token));
 
-          Post post=postRepository.findByAuthorIdAndId(userId,id).orElseThrow(()->new PostNotFoundException(MessageCodes.messages.get(221)));
+          Post post=postRepository.findByAuthorIdAndId(userId,postId).orElseThrow(()->new PostNotFoundException(MessageCodes.messages.get(221)));
 
           List<Comment> comments=post.getComments();
 
-          List<CommentResponseDto> allComments= CommentMapper.toDtoList(comments);
+          List<CommentResponseDto> commentResponseDtoList= commentMapper.toDtoList(comments);
 
-          ApiResponse<List<CommentResponseDto>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),allComments, "All comments for a post");
+           Map<String,List<CommentResponseDto>> data=new HashMap<>();
+           data.put("Post_On_Comment",commentResponseDtoList);
+
+          ApiResponse<Map<String,List<CommentResponseDto>>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),data, "All comments for a post");
           return new ResponseEntity<>(apiResponse,HttpStatus.OK);
       }
 
