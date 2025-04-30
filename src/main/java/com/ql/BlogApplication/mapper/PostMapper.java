@@ -5,6 +5,7 @@ import com.ql.BlogApplication.dto.PostResponseDto;
 import com.ql.BlogApplication.entity.Post;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
@@ -17,6 +18,9 @@ public class PostMapper {
     }
 
     public  List<CommentResponseDto> addComments(Post post){
+                 if(post.getComments()==null){
+                     return new ArrayList<>();
+                 }
                 return post.getComments().stream().map(commentMapper::toDto).toList();
     }
 

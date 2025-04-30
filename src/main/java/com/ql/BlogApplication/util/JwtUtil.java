@@ -19,43 +19,62 @@ public class JwtUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtUtil.class);
     UserRepository userRepository;
+    private final String tokenVersion="tokenVersion";
+    private final String tokenType="tokenType";
 
     JwtUtil(UserRepository userRepository){
         this.userRepository=userRepository;
     }
 
     @Value("${jwt.secret}")
-    private String SECRET_KEY;
+    private String secretKey;
 
-    @Value("${jwt.expiration}")
-    private long EXPIRATION_TIME;
+    @Value("${jwt.accessTokenExpiration}")
+    private Long accessTokenExpiration;
 
-    public String generateToken(Long id) {
+    @Value("${jwt.refreshTokenExpiration}")
+    private Long refreshTokenExpiration;
+
+
+    public String generateAccessToken(Long id) {
         User user=userRepository.findById(id).orElseThrow(()-> new UserNotFoundException(MessageCodes.messages.get(201)));
         return Jwts.builder()
                 .setSubject(id.toString())
-                .claim("tokenVersion",user.getTokenVersion())
+                .claim(tokenVersion,user.getTokenVersion())
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
-                .signWith(SignatureAlgorithm.HS256, SECRET_KEY)
+                .setExpiration(new Date(System.currentTimeMillis() + accessTokenExpiration))
+                .signWith(SignatureAlgorithm.HS256, secretKey)
                 .compact();
     }
 
+    public String generateRefreshToken(Long id) {
+        User user=userRepository.findById(id).orElseThrow(()-> new UserNotFoundException(MessageCodes.messages.get(201)));
+        return Jwts.builder()
+                .setSubject(id.toString())
+                .claim(tokenVersion,user.getTokenVersion())
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + refreshTokenExpiration))
+                .signWith(SignatureAlgorithm.HS256, secretKey)
+                .compact();
+    }
+
+
     public boolean validateToken(String token) {
         try {
-            Jwts.parser().setSigningKey(SECRET_KEY).parseClaimsJws(token);
+
+            Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token);
+
             Long id=Long.parseLong(extractId(token));
-            logger.info("from inside validate token");
             User user=userRepository.findById(id).orElseThrow(()-> new UserNotFoundException(MessageCodes.messages.get(201)));
 
             Claims claims = Jwts.parser()
-                    .setSigningKey(SECRET_KEY)
+                    .setSigningKey(secretKey)
                     .parseClaimsJws(token)
                     .getBody();
 
-            Integer tokenVersion=claims.get("tokenVersion",Integer.class);
+            Integer tokenVersionFromToken=claims.get(tokenVersion,Integer.class);
 
-            if(!Objects.equals(tokenVersion, user.getTokenVersion())){
+            if(!Objects.equals(tokenVersionFromToken, user.getTokenVersion())){
                 throw new UserLoggedOutException("Logged out user.");
             }
 
@@ -67,10 +86,19 @@ public class JwtUtil {
     }
 
     public String extractId(String token) {
-        return Jwts.parser()
-                .setSigningKey(SECRET_KEY)
-                .parseClaimsJws(token)
-                .getBody()
-                .getSubject();
+
+       if (token == null || token.trim().isEmpty()) {
+         throw new IllegalArgumentException("JWT token is null or empty in extractId()");
+       }
+
+      Claims claims = Jwts.parserBuilder()
+            .setSigningKey(secretKey)
+            .build()
+            .parseClaimsJws(token)
+            .getBody();
+
+      return claims.getSubject();
+
     }
+
 }

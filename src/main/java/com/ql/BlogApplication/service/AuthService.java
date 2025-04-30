@@ -8,12 +8,14 @@ import com.ql.BlogApplication.entity.User;
 import com.ql.BlogApplication.entity.UserRole;
 import com.ql.BlogApplication.exception.RoleNotFoundException;
 import com.ql.BlogApplication.exception.UserNotFoundException;
+import com.ql.BlogApplication.mapper.UserMapper;
 import com.ql.BlogApplication.repository.OtpRepository;
 import com.ql.BlogApplication.repository.RoleRepository;
 import com.ql.BlogApplication.repository.UserRepository;
 import com.ql.BlogApplication.repository.UserRoleRepository;
 import com.ql.BlogApplication.util.JwtUtil;
 import com.ql.BlogApplication.util.TokenContext;
+import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -56,10 +58,11 @@ public class AuthService {
               this.otpRepository=otpRepository;
       }
 
+      @Transactional
       public ResponseEntity<ApiResponse<Map<String,String>>> registerUser(UserRegisterRequestDto userRequestDto){
 
         if(userRepository.existsByEmail(userRequestDto.getEmail())){
-            ApiResponse<Map<String,String>> apiResponse=  ApiResponse.<Map<String,String>>error(HttpStatus.CONFLICT.value(), null,"Email already exists.");
+            ApiResponse<Map<String,String>> apiResponse=  ApiResponse.error(HttpStatus.CONFLICT.value(), null,"Email already exists.");
             return new ResponseEntity<>(apiResponse, HttpStatus.CONFLICT);
         }
 
@@ -69,15 +72,19 @@ public class AuthService {
         newUser.setName(userRequestDto.getName());
         newUser.setEmail(userRequestDto.getEmail());
         newUser.setPassword(userRequestDto.getPassword());
-        userRepository.save(newUser);
 
         UserRole userRole=new UserRole();
         userRole.setUser(newUser);
         userRole.setRole(role);
 
+        userRepository.save(newUser);
         userRoleRepository.save(userRole);
 
-        ApiResponse<Map<String,String>> apiResponse= ApiResponse.<Map<String,String>>success(HttpStatus.CREATED.value(), Collections.emptyMap(),MessageCodes.messages.get(101));
+        Map<String,String> data=new HashMap<>();
+        data.put("user_name",newUser.getName());
+        data.put("user_email",newUser.getEmail());
+
+        ApiResponse<Map<String,String>> apiResponse=ApiResponse.success(HttpStatus.CREATED.value(), data,MessageCodes.messages.get(101));
         return new ResponseEntity<>(apiResponse,HttpStatus.CREATED);
     }
 
@@ -93,9 +100,14 @@ public class AuthService {
                  return new ResponseEntity<>(apiResponse,HttpStatus.UNAUTHORIZED);
              }
 
-            String token=jwtUtil.generateToken(user.getId());
+            String accessToken=jwtUtil.generateAccessToken(user.getId());
+            String refreshToken=jwtUtil.generateRefreshToken(user.getId());
+
             Map<String,String> data=new HashMap<>();
-            data.put("access_token",token);
+            data.put("User_name",user.getName());
+            data.put("User_email",user.getEmail());
+            data.put("access_token",accessToken);
+            data.put("refresh_token",refreshToken);
             ApiResponse<Map<String,String>> apiResponse=ApiResponse.success(HttpStatus.OK.value(), data,MessageCodes.messages.get(102));
             return new ResponseEntity<>(apiResponse,HttpStatus.OK);
       }
@@ -158,9 +170,13 @@ public class AuthService {
           }
 
           otpRepository.delete(otp);
-          String token=jwtUtil.generateToken(user.getId());
+          String accessToken=jwtUtil.generateAccessToken(user.getId());
+          String refreshToken=jwtUtil.generateRefreshToken(user.getId());
           Map<String,String> data=new HashMap<>();
-          data.put("access_token",token);
+          data.put("access_token",accessToken);
+          data.put("refresh_token",refreshToken);
+          data.put("user_name",user.getName());
+          data.put("email",user.getEmail());
 
           ApiResponse<Map<String,String>> apiResponse=ApiResponse.success(HttpStatus.OK.value(), data,"Login successfully");
           return new ResponseEntity<>(apiResponse,HttpStatus.OK);

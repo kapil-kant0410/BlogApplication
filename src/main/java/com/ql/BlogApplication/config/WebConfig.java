@@ -11,14 +11,19 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
-    final JwtAuthInterceptor jwtAuthInterceptor;
-    final AuthorInterceptor authorInterceptor;
+   private final JwtAuthInterceptor jwtAuthInterceptor;
+   private final AuthorInterceptor authorInterceptor;
+
 
     private final String[] WHITELIST={
             "/api/auth/login",
             "/api/auth/register",
             "/api/auth/generate-otp",
-            "/api/auth/validate-otp"
+            "/api/auth/validate-otp",
+            "/api/post/create",
+            "/api/post/all",
+            "/api/category/create",
+            "/api/category/delete",
     };
 
     public WebConfig(JwtAuthInterceptor jwtAuthInterceptor,AuthorInterceptor authorInterceptor) {
@@ -31,9 +36,8 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addInterceptor(jwtAuthInterceptor)
                 .addPathPatterns("/api/**")
                 .excludePathPatterns(WHITELIST);
-
         registry.addInterceptor(authorInterceptor)
-                .addPathPatterns("/api/post/create","/api/category/create","/api/category/delete/**");
+                .addPathPatterns("/api/post/create","/api/category/create","/api/category/delete");
     }
 
     @Override
@@ -41,6 +45,5 @@ public class WebConfig implements WebMvcConfigurer {
          resourceHandlerRegistry.addResourceHandler("/uploads/**")
                  .addResourceLocations("file:uploads/");
     }
-
 
 }

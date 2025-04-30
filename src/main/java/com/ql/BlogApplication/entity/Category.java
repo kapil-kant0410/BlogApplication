@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -23,5 +25,5 @@ public class Category {
 
     @OneToMany(mappedBy = "category")
     @JsonManagedReference
-    private List<Post> posts;
+    private List<Post> posts=new ArrayList<>();
 }

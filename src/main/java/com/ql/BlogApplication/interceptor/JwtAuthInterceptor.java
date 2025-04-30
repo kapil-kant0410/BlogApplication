@@ -7,16 +7,12 @@ import com.ql.BlogApplication.util.TokenContext;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.transaction.Transactional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 @Component
 @Transactional
 public class JwtAuthInterceptor implements HandlerInterceptor {
-
-    private static final Logger logger = LoggerFactory.getLogger(JwtAuthInterceptor.class);
 
     private final JwtUtil jwtUtil;
 
@@ -32,8 +28,6 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
         if(authHeader!=null&&authHeader.startsWith("Bearer ")){
             String token=authHeader.substring(7);
             TokenContext.setToken(token);
-            String id=jwtUtil.extractId(token);
-            logger.info("token is {} and id inside is  {}",token,id);
             if(jwtUtil.validateToken(token)){
                  return true;
             }
@@ -46,10 +40,6 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
         response.getWriter().write(json);
         response.getWriter().flush();
         return false;
-    }
-
-    public void afterCompletion(HttpServletRequest request,HttpServletResponse response,Object handler){
-         TokenContext.clearToken();
     }
 
 }

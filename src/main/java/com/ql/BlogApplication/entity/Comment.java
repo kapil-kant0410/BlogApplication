@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.HashSet;
 import java.util.Set;
 
 @Entity
@@ -35,5 +36,5 @@ public class Comment {
 
     @OneToMany(mappedBy = "comment", cascade = CascadeType.ALL,orphanRemoval = true)
     @JsonManagedReference
-    Set<Like> likes;
+    Set<Like> likes=new HashSet<>();
 }

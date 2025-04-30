@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -47,9 +48,9 @@ public class Post {
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL,orphanRemoval = true)
     @JsonManagedReference
-    private List<Comment> comments;
+    private List<Comment> comments=new ArrayList<>();
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL,orphanRemoval = true)
     @JsonManagedReference
-    private List<Like> likes;
+    private List<Like> likes=new ArrayList<>();
 }

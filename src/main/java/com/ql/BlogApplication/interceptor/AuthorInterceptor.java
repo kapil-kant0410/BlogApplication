@@ -7,6 +7,7 @@ import com.ql.BlogApplication.entity.User;
 import com.ql.BlogApplication.exception.UserNotFoundException;
 import com.ql.BlogApplication.repository.UserRepository;
 import com.ql.BlogApplication.util.JwtUtil;
+import com.ql.BlogApplication.util.TokenContext;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.transaction.Transactional;
@@ -40,11 +41,8 @@ public class AuthorInterceptor implements HandlerInterceptor {
             if(jwtUtil.validateToken((token))){
                 Long id= Long.parseLong(jwtUtil.extractId(token));
                 User user=userRepository.findById(id).orElseThrow(()-> new UserNotFoundException(MessageCodes.messages.get(201)));
-
-                Boolean isAuthor= user.getUserRoles().stream().map(userRole -> {
-                           return userRole.getRole().getName();
-                       }).anyMatch("author"::equals);
-
+                Boolean isAuthor= user.getUserRoles().stream().map(userRole -> userRole.getRole().getName()).anyMatch("author"::equals);
+                TokenContext.setToken(token);
                 if(Boolean.TRUE.equals(isAuthor)) return true;
             }
         }

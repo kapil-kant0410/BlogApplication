@@ -59,8 +59,7 @@ public class PostController {
             return postService.publishPost(id);
        }
 
-
-       @GetMapping("/getAllComments/{id}")
+       @GetMapping("/get-all-comments/{id}")
        ResponseEntity<ApiResponse<Map<String,List<CommentResponseDto>>>> findAllCommentByPostId(@PathVariable Long id){
                return postService.findAllCommentByPostId(id);
        }

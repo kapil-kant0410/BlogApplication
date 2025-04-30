@@ -11,20 +11,17 @@ public class UserMapper {
 
    public static List<String> findUserRoles(Set<UserRole> userRoleSet){
 
-      return  userRoleSet.stream().map(userRole -> {
-          return userRole.getRole().getName();
-       }).toList();
+      return  userRoleSet.stream().map(userRole ->userRole.getRole().getName()).toList();
 
    }
 
    public static List<UserResponseDto> toDtoList(List<User> users){
-          return  users.stream().map(user -> {
-              return UserResponseDto.builder()
+          return  users.stream().map(user -> UserResponseDto.builder()
                       .name(user.getName())
                       .email(user.getEmail())
                       .role(findUserRoles(user.getUserRoles()))
-                      .build();
-          }).toList();
+                      .build()
+          ).toList();
     }
 
     public static UserResponseDto toDto(User user){

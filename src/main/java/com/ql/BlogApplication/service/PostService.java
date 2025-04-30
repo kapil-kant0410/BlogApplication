@@ -89,9 +89,9 @@ public class PostService {
 
           Category category=categoryRepository.findById(postRequestDto.getCategoryId()).orElseThrow(()-> new CategoryNotFoundException(MessageCodes.messages.get(231)));
 
-           Post post=new Post();
-           post.setTitle(postRequestDto.getTitle());
-           post.setContent(postRequestDto.getContent());
+          Post post=new Post();
+          post.setTitle(postRequestDto.getTitle());
+          post.setContent(postRequestDto.getContent());
 
           String token= TokenContext.getToken();
           Long userId= Long.parseLong(jwtUtil.extractId(token));
@@ -108,6 +108,67 @@ public class PostService {
           ApiResponse<Map<String,PostResponseDto>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),data,MessageCodes.messages.get(121));
           return new ResponseEntity<>(apiResponse,HttpStatus.OK);
       }
+
+       //publish a post if not published
+       public ResponseEntity<ApiResponse<Map<String,PostResponseDto>>> publishPost(Long postId){
+
+        String token= TokenContext.getToken();
+        Long userId= Long.parseLong(jwtUtil.extractId(token));
+
+        Post post=postRepository.findByAuthorIdAndId(userId,postId).orElseThrow(()-> new PostNotFoundException(MessageCodes.messages.get(221)));
+        PostResponseDto postResponseDto=postMapper.toDto(post);
+        Map<String,PostResponseDto> data=new HashMap<>();
+
+        if(post.getIsPublished()==Boolean.TRUE){
+            post.setIsPublished(false);
+            postRepository.save(post);
+            data.put("Unpublished_post",postResponseDto);
+            ApiResponse<Map<String,PostResponseDto>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),data, "Post unpublish successfully");
+            return new ResponseEntity<>(apiResponse,HttpStatus.OK);
+        }
+
+        post.setIsPublished(true);
+        postRepository.save(post);
+        data.put("Published_post",postResponseDto);
+        ApiResponse<Map<String,PostResponseDto>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),data, "Post published successfully");
+        return new ResponseEntity<>(apiResponse,HttpStatus.OK);
+    }
+
+      //working fine getting all post under a category
+       public ResponseEntity<ApiResponse<Map<String,List<PostResponseDto>>>> findAllPostByCategory(String category){
+
+        List<Post> allPosts=postRepository.findByIsPublishedTrue();
+
+        List<Post> filterPosts= allPosts.stream().filter(post->post.getCategory().getName().equals(category)).toList();
+        List<PostResponseDto>  postResponseDtoList = postMapper.toDtoList(filterPosts);
+
+        Map<String,List<PostResponseDto>> data=new HashMap<>();
+        data.put("All_post_by_category",postResponseDtoList);
+
+        ApiResponse< Map<String,List<PostResponseDto>>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),data,"All posts inside category");
+        return new ResponseEntity<>(apiResponse,HttpStatus.OK);
+    }
+
+       //working fine getting all comment list under a post
+       public ResponseEntity<ApiResponse<Map<String,List<CommentResponseDto>>>> findAllCommentByPostId(Long postId){
+
+        Post post=postRepository.findById(postId).orElseThrow(()->new PostNotFoundException(MessageCodes.messages.get(221)));
+
+        if(post.getIsPublished()==Boolean.FALSE){
+               ApiResponse<Map<String,List<CommentResponseDto>>> apiResponse=ApiResponse.error(HttpStatus.BAD_REQUEST.value(),null,"Unpublished post");
+               return new ResponseEntity<>(apiResponse,HttpStatus.BAD_REQUEST);
+        }
+
+        List<Comment> comments=post.getComments();
+
+        List<CommentResponseDto> commentResponseDtoList= commentMapper.toDtoList(comments);
+
+        Map<String,List<CommentResponseDto>> data=new HashMap<>();
+        data.put("Comment_on_post",commentResponseDtoList);
+
+        ApiResponse<Map<String,List<CommentResponseDto>>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),data, "All comments for a post");
+        return new ResponseEntity<>(apiResponse,HttpStatus.OK);
+    }
 
        //uploading image in s3 bucket
        public ResponseEntity<ApiResponse<Map<String,PostResponseDto>>> uploadImage(Long id,MultipartFile multipartFile) {
@@ -153,7 +214,7 @@ public class PostService {
 
       }
 
-      //generating presigned url for uploading image
+       //generating presigned url for uploading image
        public ResponseEntity<ApiResponse<Map<String,String>>> generatePreSignedUrl(String fileName,String contentType){
            try{
                String uniqueFilename = UUID.randomUUID() + "_" + fileName;
@@ -202,65 +263,6 @@ public class PostService {
 
         ApiResponse<Map<String,PostResponseDto>> apiResponse=ApiResponse.success(HttpStatus.OK.value(), data, "Image URL saved successfully");
         return new ResponseEntity<>(apiResponse,HttpStatus.OK);
-      }
-
-       //publish a post if not published
-       public ResponseEntity<ApiResponse<Map<String,PostResponseDto>>> publishPost(Long postId){
-
-        String token= TokenContext.getToken();
-        Long userId= Long.parseLong(jwtUtil.extractId(token));
-
-        Post post=postRepository.findByAuthorIdAndId(userId,postId).orElseThrow(()-> new PostNotFoundException(MessageCodes.messages.get(221)));
-        PostResponseDto postResponseDto=postMapper.toDto(post);
-        Map<String,PostResponseDto> data=new HashMap<>();
-
-        if(post.getIsPublished()==Boolean.TRUE){
-            post.setIsPublished(false);
-            postRepository.save(post);
-            data.put("Unpublished_post",postResponseDto);
-            ApiResponse<Map<String,PostResponseDto>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),data, "Post unpublish successfully");
-            return new ResponseEntity<>(apiResponse,HttpStatus.OK);
-        }
-
-        post.setIsPublished(true);
-        postRepository.save(post);
-        data.put("Published_post",postResponseDto);
-        ApiResponse<Map<String,PostResponseDto>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),data, "Post published successfully");
-        return new ResponseEntity<>(apiResponse,HttpStatus.OK);
-    }
-
-       //working fine getting all post under a category
-       public ResponseEntity<ApiResponse<Map<String,List<PostResponseDto>>>> findAllPostByCategory(String category){
-
-            List<Post> allPosts=postRepository.findByIsPublishedTrue();
-
-            List<Post> filterPosts= allPosts.stream().filter(post->post.getCategory().getName().equals(category)).toList();
-            List<PostResponseDto>  postResponseDtoList = postMapper.toDtoList(filterPosts);
-
-            Map<String,List<PostResponseDto>> data=new HashMap<>();
-            data.put("All_post_by_category",postResponseDtoList);
-
-            ApiResponse< Map<String,List<PostResponseDto>>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),data,"All posts inside category");
-            return new ResponseEntity<>(apiResponse,HttpStatus.OK);
-      }
-
-       //working fine getting all comment list under a post
-       public ResponseEntity<ApiResponse<Map<String,List<CommentResponseDto>>>> findAllCommentByPostId(Long postId){
-
-          String token= TokenContext.getToken();
-          Long userId= Long.parseLong(jwtUtil.extractId(token));
-
-          Post post=postRepository.findByAuthorIdAndId(userId,postId).orElseThrow(()->new PostNotFoundException(MessageCodes.messages.get(221)));
-
-          List<Comment> comments=post.getComments();
-
-          List<CommentResponseDto> commentResponseDtoList= commentMapper.toDtoList(comments);
-
-           Map<String,List<CommentResponseDto>> data=new HashMap<>();
-           data.put("Post_On_Comment",commentResponseDtoList);
-
-          ApiResponse<Map<String,List<CommentResponseDto>>> apiResponse=ApiResponse.success(HttpStatus.OK.value(),data, "All comments for a post");
-          return new ResponseEntity<>(apiResponse,HttpStatus.OK);
       }
 
 }
