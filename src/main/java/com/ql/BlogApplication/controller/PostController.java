@@ -34,9 +34,15 @@ public class PostController {
            return postService.createPost(postRequestDto);
        }
 
-       @PostMapping("/upload-image/{id}")
-       ResponseEntity<ApiResponse<Map<String,PostResponseDto>>> uploadImage(@PathVariable Long id,@RequestParam("file") MultipartFile multipartFile){
-          return postService.uploadImage(id,multipartFile);
+       @PostMapping("/upload-image-local/{id}")
+       ResponseEntity<ApiResponse<String>> uploadImageLocal(@PathVariable Long id,@RequestParam("file") MultipartFile multipartFile){
+        return postService.uploadImageOnLocal(id,multipartFile);
+       }
+
+
+       @PostMapping("/upload-image-s3/{id}")
+       ResponseEntity<ApiResponse<Map<String,PostResponseDto>>> uploadImageS3(@PathVariable Long id,@RequestParam("file") MultipartFile multipartFile){
+          return postService.uploadImageS3(id,multipartFile);
        }
 
        @PostMapping("/generate-presignedUrl")
@@ -44,7 +50,7 @@ public class PostController {
           return postService.generatePreSignedUrl(generatePresignedUrlDto.getFileName(),generatePresignedUrlDto.getContentType());
        }
 
-       @PostMapping("confirm-image-upload/{postId}")
+       @PostMapping("/confirm-image-upload/{postId}")
        ResponseEntity<ApiResponse<Map<String,PostResponseDto>>>  confirmImageUpload(@PathVariable Long postId, @Valid @RequestBody ConfirmImageUploadDto confirmImageUploadDto){
            return postService.confirmImageUpload(postId,confirmImageUploadDto.getImageUrl());
        }

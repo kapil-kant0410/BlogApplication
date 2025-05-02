@@ -32,11 +32,12 @@ import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequ
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 
 @Service
@@ -57,6 +58,9 @@ public class PostService {
 
       @Value(("${aws.region}"))
       private String awsRegion;
+
+      @Value("${file.uploads-dir}")
+      private String uploadDir;
 
 
     PostService(PostMapper postMapper,CommentMapper commentMapper,S3Presigner s3Presigner,S3Client s3Client,PostRepository postRepository, UserRepository userRepository, CategoryRepository categoryRepository, JwtUtil jwtUtil){
@@ -170,16 +174,75 @@ public class PostService {
         return new ResponseEntity<>(apiResponse,HttpStatus.OK);
     }
 
+      //working fine upload image locally
+       public ResponseEntity<ApiResponse<String>> uploadImageOnLocal(Long id,MultipartFile multipartFile) {
+
+           try{
+               String contentType = multipartFile.getContentType();
+               logger.info("Content type :{}",contentType);
+               if (contentType == null || !contentType.startsWith("image/")) {
+                   ApiResponse<String> apiResponse = ApiResponse.error(HttpStatus.BAD_REQUEST.value(), null, "Only image files are allowed");
+                   return new ResponseEntity<>(apiResponse, HttpStatus.BAD_REQUEST);
+               }
+
+               String token= TokenContext.getToken();
+               Long userId= Long.parseLong(jwtUtil.extractId(token));
+
+               String fileName= UUID.randomUUID()+"_"+multipartFile.getOriginalFilename();
+               Post post=postRepository.findByAuthorIdAndId(userId,id).orElseThrow(()-> new PostNotFoundException(MessageCodes.messages.get(221)));
+
+               if(post.getIsPublished()==Boolean.FALSE){
+                   ApiResponse<String> apiResponse=ApiResponse.error(HttpStatus.BAD_REQUEST.value(),null,"Unpublished post");
+                   return new ResponseEntity<>(apiResponse,HttpStatus.BAD_REQUEST);
+               }
+
+               Path uploadPath= Paths.get(uploadDir);
+
+               if(!Files.exists(uploadPath)){
+                   Files.createDirectories(uploadPath);
+               }
+
+               Path filePath=uploadPath.resolve(fileName);
+               Files.copy(multipartFile.getInputStream(),filePath, StandardCopyOption.REPLACE_EXISTING);
+
+               String imageUrl="http://localhost:8080/uploads/"+fileName;
+
+               logger.info("URL for the image: {}", imageUrl);
+
+               post.setImageURL(imageUrl);
+               postRepository.save(post);
+               logger.info("Image saved successfully");
+
+           }catch (IOException ioException){
+               ApiResponse<String> apiResponse=ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR.value(),null,"internal server error");
+               return new ResponseEntity<>(apiResponse,HttpStatus.INTERNAL_SERVER_ERROR);
+           }
+
+           ApiResponse<String> apiResponse=ApiResponse.success(HttpStatus.OK.value(), "","image uploaded successfully");
+           return new ResponseEntity<>(apiResponse,HttpStatus.OK);
+
+       }
+
        //uploading image in s3 bucket
-       public ResponseEntity<ApiResponse<Map<String,PostResponseDto>>> uploadImage(Long id,MultipartFile multipartFile) {
+       public ResponseEntity<ApiResponse<Map<String,PostResponseDto>>> uploadImageS3(Long id,MultipartFile multipartFile) {
 
         try{
+            String contentType = multipartFile.getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                ApiResponse<Map<String,PostResponseDto>> apiResponse = ApiResponse.error(HttpStatus.BAD_REQUEST.value(), null, "Only image files are allowed");
+                return new ResponseEntity<>(apiResponse, HttpStatus.BAD_REQUEST);
+            }
 
             String token= TokenContext.getToken();
             Long userId= Long.parseLong(jwtUtil.extractId(token));
 
             String fileName= UUID.randomUUID()+"_"+multipartFile.getOriginalFilename();
             Post post=postRepository.findByAuthorIdAndId(userId,id).orElseThrow(()-> new PostNotFoundException(MessageCodes.messages.get(221)));
+
+            if(post.getIsPublished()==Boolean.FALSE){
+                ApiResponse<Map<String,PostResponseDto>> apiResponse=ApiResponse.error(HttpStatus.BAD_REQUEST.value(),null,"Unpublished post");
+                return new ResponseEntity<>(apiResponse,HttpStatus.BAD_REQUEST);
+            }
 
             if(post.getImageURL()!=null){
                String oldKey=post.getImageURL().substring(post.getImageURL().lastIndexOf("/")+1);
